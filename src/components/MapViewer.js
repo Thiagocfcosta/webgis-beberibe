@@ -505,7 +505,7 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
               basePointFilter = ['all', basePointFilter, exclusionExpr];
             }
           } else {
-            const exclusionExpr = ['!', ['in', ['to-string', ['get', sym.property]], ...hiddenValues]];
+            const exclusionExpr = ['!', ['in', ['to-string', ['get', sym.property]], ['literal', hiddenValues]]];
             basePolygonFilter = ['all', basePolygonFilter, exclusionExpr];
             baseLineFilter = ['all', baseLineFilter, exclusionExpr];
             basePointFilter = ['all', basePointFilter, exclusionExpr];
@@ -591,7 +591,7 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
                   });
                   styleFilter = ['all', baseLineFilter, ['any', ...numExpressions]];
                 } else {
-                  styleFilter = ['all', baseLineFilter, ['in', ['to-string', ['get', sym.property]], ...values]];
+                  styleFilter = ['all', baseLineFilter, ['in', ['to-string', ['get', sym.property]], ['literal', values]]];
                 }
 
                 return (
