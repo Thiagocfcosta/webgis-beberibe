@@ -287,7 +287,10 @@ export default function SavedMapsDrawer({
     groupedMaps[f].push(map);
   });
 
-  const filteredSharedMaps = sharedMaps.filter(map => teamFilterEmail === 'Todos' || map.owner_name === teamFilterEmail);
+  // Excluir projetos do próprio usuário dos mapas compartilhados
+  const teamSharedMaps = sharedMaps.filter(map => !maps.some(myMap => myMap.id === map.id));
+
+  const filteredSharedMaps = teamSharedMaps.filter(map => teamFilterEmail === 'Todos' || map.owner_name === teamFilterEmail);
 
   const groupedSharedMaps = filteredSharedMaps.reduce((acc, map) => {
     const f = map.folder_name || 'Raiz';
@@ -297,7 +300,7 @@ export default function SavedMapsDrawer({
   }, {});
 
   // Extrair usuários únicos da equipe para o filtro
-  const teamUsers = [...new Set(sharedMaps.map(m => m.owner_name || m.owner_email))].filter(Boolean).sort();
+  const teamUsers = [...new Set(teamSharedMaps.map(m => m.owner_name || m.owner_email))].filter(Boolean).sort();
 
   // Filtrar logs
   const filteredLogs = exportLogs.filter(log => {
@@ -310,6 +313,7 @@ export default function SavedMapsDrawer({
   });
 
   const favoriteMaps = maps.filter(m => m.is_favorite);
+  const teamFavoriteMaps = teamSharedMaps.filter(m => m.is_favorite);
 
   const renderMapCard = (map) => (
     <div key={map.id} className="relative bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-lg transition-colors cursor-pointer group" onClick={() => handleLoad(map.config_json)}>
@@ -537,14 +541,14 @@ export default function SavedMapsDrawer({
                   )}
 
                   {/* Seção de Favoritos da Equipe (Curtidos por mim) */}
-                  {sharedMaps.filter(m => m.is_favorite).length > 0 && (
+                  {teamFavoriteMaps.length > 0 && (
                     <div className="bg-slate-800/60 rounded-lg border border-indigo-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
                       <div className="bg-gradient-to-r from-indigo-500/20 to-slate-800 px-3 py-2 flex items-center gap-2 border-b border-indigo-500/20">
                         <Users size={14} className="text-indigo-400" />
                         <span className="text-xs font-bold text-indigo-400 tracking-wider">FAVORITOS DA EQUIPE</span>
                       </div>
                       <div className="p-2 space-y-2 bg-slate-900/30">
-                        {sharedMaps.filter(m => m.is_favorite).map(map => renderMapCard(map))}
+                        {teamFavoriteMaps.map(map => renderMapCard(map))}
                       </div>
                     </div>
                   )}
