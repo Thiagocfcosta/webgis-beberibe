@@ -55,6 +55,7 @@ export default function SavedMapsDrawer({
       if (activeTab === 'projects') {
         fetchMaps();
         fetchFolders();
+        fetchSharedMaps(); // Carrega para poder exibir favoritos da equipe/comunidade na aba principal
       }
       if (activeTab === 'history') fetchExportLogs();
       if (activeTab === 'shared' || activeTab === 'community') fetchSharedMaps();
@@ -692,27 +693,6 @@ export default function SavedMapsDrawer({
                     </div>
                   )}
 
-                  {/* Seção de Favoritos da Comunidade (Curtidos por mim) */}
-                  {myCommunityFavorites.length > 0 && (
-                    <div className="bg-slate-800/60 rounded-lg border border-emerald-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
-                      <div 
-                        className="bg-gradient-to-r from-emerald-500/20 to-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors border-b border-emerald-500/20"
-                        onClick={() => toggleFolder('FAVORITOS_COMUNIDADE_PESSOAL')}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Globe size={14} className="text-emerald-400" />
-                          <span className="text-xs font-bold text-emerald-400 tracking-wider">MEUS FAVORITOS DA COMUNIDADE</span>
-                        </div>
-                        <span className="text-[10px] bg-slate-900 text-emerald-400 px-1.5 py-0.5 rounded">{myCommunityFavorites.length}</span>
-                      </div>
-                      {isFolderExpanded('FAVORITOS_COMUNIDADE_PESSOAL', true) && (
-                        <div className="p-2 space-y-2 bg-slate-900/30">
-                          {myCommunityFavorites.map(map => renderMapCard(map))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   {/* Seção de Favoritos da Equipe (Curtidos por mim) */}
                   {myTeamFavorites.length > 0 && (
                     <div className="bg-slate-800/60 rounded-lg border border-indigo-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
@@ -729,6 +709,27 @@ export default function SavedMapsDrawer({
                       {isFolderExpanded('FAVORITOS_EQUIPE_PESSOAL', true) && (
                         <div className="p-2 space-y-2 bg-slate-900/30">
                           {myTeamFavorites.map(map => renderMapCard(map))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Seção de Favoritos da Comunidade (Curtidos por mim) */}
+                  {myCommunityFavorites.length > 0 && (
+                    <div className="bg-slate-800/60 rounded-lg border border-emerald-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                      <div 
+                        className="bg-gradient-to-r from-emerald-500/20 to-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors border-b border-emerald-500/20"
+                        onClick={() => toggleFolder('FAVORITOS_COMUNIDADE_PESSOAL')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Globe size={14} className="text-emerald-400" />
+                          <span className="text-xs font-bold text-emerald-400 tracking-wider">MEUS FAVORITOS DA COMUNIDADE</span>
+                        </div>
+                        <span className="text-[10px] bg-slate-900 text-emerald-400 px-1.5 py-0.5 rounded">{myCommunityFavorites.length}</span>
+                      </div>
+                      {isFolderExpanded('FAVORITOS_COMUNIDADE_PESSOAL', true) && (
+                        <div className="p-2 space-y-2 bg-slate-900/30">
+                          {myCommunityFavorites.map(map => renderMapCard(map))}
                         </div>
                       )}
                     </div>
