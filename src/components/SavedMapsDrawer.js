@@ -402,6 +402,7 @@ export default function SavedMapsDrawer({
         <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-400">Clique para carregar</span>
       </div>
     </div>
+    );
   };
 
   if (!isOpen) return null;
