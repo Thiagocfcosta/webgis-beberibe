@@ -3,12 +3,13 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Map, { Source, Layer, NavigationControl, Popup, ScaleControl } from 'react-map-gl/maplibre';
 import bbox from '@turf/bbox';
-import { Table, X, ChevronUp, ChevronDown, Printer, Compass } from 'lucide-react';
+import { Table, X, ChevronUp, ChevronDown, Printer, Compass, Download } from 'lucide-react';
 import maplibregl from 'maplibre-gl';
 import * as htmlToImage from 'html-to-image';
 import jsPDF from 'jspdf';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { createPattern } from '../utils/patternGenerator';
+import PrintLayout from './PrintLayout';
 
 // Generating random colors for different layers
 const stringToColor = (str) => {
@@ -20,7 +21,7 @@ const stringToColor = (str) => {
   return '#' + '00000'.substring(0, 6 - c.length) + c;
 };
 
-export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoData, symbologyConfig }) {
+export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoData, symbologyConfig, clippedLayers }) {
   const mapRef = useRef(null);
   const [loadingLayers, setLoadingLayers] = useState(new Set());
   const [hoverInfo, setHoverInfo] = useState(null);
@@ -34,75 +35,136 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
   const [mapDesc, setMapDesc] = useState('Insira uma descrição, data ou nota técnica sobre o mapa aqui...');
   const [isExporting, setIsExporting] = useState(false);
 
-  const exportToPDF = async () => {
-    if (!mapRef.current) return;
-    setIsExporting(true);
-    
+  const [printSnapshot, setPrintSnapshot] = useState(null);
+  const [printMetadata, setPrintMetadata] = useState(null);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [finalPdfImage, setFinalPdfImage] = useState(null);
+
+  const handlePrintReady = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const map = mapRef.current.getMap();
-      const mapCanvas = map.getCanvas();
-      
-      // Teste imediato de Segurança (CORS) do MapLibre
-      try {
-        mapCanvas.toDataURL();
-      } catch (e) {
-        throw new Error('A imagem de satélite ou basemap bloqueou a extração de dados (Tainted Canvas CORS).');
-      }
-      
-      const element = document.getElementById('map-export-container');
-      
-      // Captura apenas a UI HTML
-      const uiCanvas = await htmlToImage.toCanvas(element, {
-        pixelRatio: 2,
-        backgroundColor: 'rgba(0,0,0,0)',
-        filter: (node) => {
-          return !(node.classList && (node.classList.contains('maplibregl-canvas-container') || node.classList.contains('mapboxgl-canvas-container') || node.tagName === 'CANVAS'));
-        }
-      });
+      const element = document.getElementById('print-layout-container');
+      if (!element) throw new Error("Container do layout não encontrado");
 
-      // Cria um canvas mestre
-      const mergedCanvas = document.createElement('canvas');
-      mergedCanvas.width = mapCanvas.width;
-      mergedCanvas.height = mapCanvas.height;
-      const ctx = mergedCanvas.getContext('2d');
+      // 1. Gera o Canvas apenas da parte UI (Carimbo, Legenda) - O lado do mapa fica transparente
+      const uiCanvas = await htmlToImage.toCanvas(element, { pixelRatio: 1 });
       
-      // Fundo
+      // 2. Cria o Canvas Final mestre
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = 2970;
+      finalCanvas.height = 2100;
+      const ctx = finalCanvas.getContext('2d');
+      
+      // 3. Fundo branco para o carimbo, fundo escuro para o mapa
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(finalCanvas.width * 0.78, 0, finalCanvas.width * 0.22, finalCanvas.height);
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, mergedCanvas.width, mergedCanvas.height);
-      
-      // Desenha o mapa WebGL real
-      ctx.drawImage(mapCanvas, 0, 0);
-      
-      // Desenha a UI por cima (escalada se necessário)
-      ctx.drawImage(uiCanvas, 0, 0, mergedCanvas.width, mergedCanvas.height);
+      ctx.fillRect(0, 0, finalCanvas.width * 0.78, finalCanvas.height);
 
-      const imgData = mergedCanvas.toDataURL('image/jpeg', 0.95);
+      // 4. Desenha a foto nativa do WebGL na parte reservada ao mapa
+      if (printSnapshot) {
+        const img = new Image();
+        img.src = printSnapshot; 
+        await new Promise((resolve) => { img.onload = resolve; });
+        ctx.drawImage(img, 0, 0, finalCanvas.width * 0.78, finalCanvas.height);
+      }
+
+      // 5. Por cima de tudo, colamos a camada do Carimbo e as "réguas" do mapa
+      ctx.drawImage(uiCanvas, 0, 0);
+
+      // 6. Transforma o canvas montado numa imagem JPEG
+      const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.95);
       
+      setFinalPdfImage(dataUrl);
+      setShowPrintPreview(true);
+    } catch (e) {
+      console.error('Erro DETALHADO ao exportar PDF:', e);
+      alert('Erro ao gerar o preview do PDF. Verifique o console.');
+      setIsExporting(false);
+    } 
+  };
+
+  // Botão "Download" do Modal de Preview
+  const downloadConfirmedPdf = () => {
+    try {
       const pdf = new jsPDF('l', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       
-      const imgWidth = mergedCanvas.width;
-      const imgHeight = mergedCanvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      
-      const finalWidth = imgWidth * ratio;
-      const finalHeight = imgHeight * ratio;
-      const x = (pdfWidth - finalWidth) / 2;
-      const y = (pdfHeight - finalHeight) / 2;
-
-      pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
-      pdf.save(`Mapa_Beberibe_${new Date().getTime()}.pdf`);
-      
-    } catch (error) {
-      console.error('Erro DETALHADO ao exportar PDF:', error);
-      alert(`Ocorreu um erro ao gerar o PDF: ${error.message || 'Veja o console (F12) para detalhes.'}`);
+      pdf.addImage(finalPdfImage, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Mapa_PDOT_Beberibe_${new Date().getTime()}.pdf`);
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao salvar o PDF.');
     } finally {
+      setShowPrintPreview(false);
+      setFinalPdfImage(null);
+      setPrintSnapshot(null);
       setIsExporting(false);
     }
   };
+
+  const cancelPrint = () => {
+    setShowPrintPreview(false);
+    setFinalPdfImage(null);
+    setPrintSnapshot(null);
+    setIsExporting(false);
+  };
+
+  const exportToPDF = () => {
+    if (!mapRef.current) return;
+    
+    setIsExporting(true);
+    
+    try {
+      const map = mapRef.current.getMap();
+      const mapCanvas = map.getCanvas();
+      
+      // Função para extrair síncronamente no final do frame de renderização
+      const doExtract = () => {
+        try {
+          // 1. Extrai metadados essenciais (bounds para escala, bearing para bússola)
+          const bounds = map.getBounds();
+          const nw = bounds.getNorthWest();
+          const ne = bounds.getNorthEast();
+          
+          // Haversine para distância entre NW e NE (largura do mapa em KM)
+          const R = 6371; // km
+          const dLat = (ne.lat - nw.lat) * Math.PI / 180;
+          const dLon = (ne.lng - nw.lng) * Math.PI / 180;
+          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(nw.lat * Math.PI / 180) * Math.cos(ne.lat * Math.PI / 180) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const widthKm = R * c;
+
+          setPrintMetadata({ widthKm, bearing: map.getBearing() });
+
+          // 2. Garante que o WebGL não seja apagado pegando no milissegundo exato
+          const dataUrl = mapCanvas.toDataURL('image/png');
+          setPrintSnapshot(dataUrl);
+        } catch(e) {
+          console.error("Erro na extração nativa:", e);
+          setIsExporting(false);
+        }
+      };
+
+      // Garante que TODOS os tiles, polígonos e dados carregaram (idle)
+      map.once('idle', () => {
+        // Agora que tudo está na RAM, forçamos um único redesenho e capturamos na mosca!
+        map.once('render', doExtract);
+        map.triggerRepaint();
+      });
+      
+      // Se ele já estava idle, o evento acima não dispara.
+      // Então, damos um triggerRepaint() para chutar o idle.
+      map.triggerRepaint();
+      
+    } catch (error) {
+      console.error('Erro ao preparar exportação:', error);
+      setIsExporting(false);
+    }
+  };
+
 
   // Definição dos estilos de basemap disponíveis
   const getMapStyle = (style) => {
@@ -208,29 +270,32 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
   // Fetch GeoJSON for newly activated layers
   useEffect(() => {
     const fetchLayerData = async (layerId) => {
-      if (geoData[layerId]) return; // Already loaded
+      // Evita re-fetch se já existir
+      if (geoData[layerId]) return;
+
+      const baseLayerId = layerId.split('__')[0];
+      const isCopy = layerId !== baseLayerId;
+      const isClipped = clippedLayers[layerId] === true;
+
+      // OTIMIZAÇÃO DE MEMÓRIA (Proxy Data)
+      // Se for uma cópia, a base já existir na memória, e não for um recorte exclusivo da cópia:
+      // Simplesmente apontamos para os mesmos dados da RAM em vez de baixar 20MB de novo!
+      if (isCopy && geoData[baseLayerId] && !isClipped && !clippedLayers[baseLayerId]) {
+        setGeoData(prev => ({ ...prev, [layerId]: prev[baseLayerId] }));
+        return;
+      }
 
       setLoadingLayers(prev => new Set(prev).add(layerId));
       try {
-        const response = await fetch(`/api/geojson/${layerId}`);
+        // A API sempre recebe o ID real do banco (baseLayerId)
+        const response = await fetch(`/api/geojson/${baseLayerId}?clip=${isClipped}`);
         const data = await response.json();
+        // Salva na memória usando o ID da cópia para isolamento de estado
         setGeoData(prev => ({ ...prev, [layerId]: data }));
 
-        // Auto-zoom para a camada recém-carregada
-        try {
-          if (data && data.features && data.features.length > 0) {
-            const layerBbox = bbox(data);
-            if (mapRef.current) {
-              mapRef.current.fitBounds(layerBbox, {
-                padding: 60,
-                duration: 1500,
-                maxZoom: 16 // Evita dar um zoom excessivo em feições muito pequenas (como um único ponto)
-              });
-            }
-          }
-        } catch (bboxError) {
-          console.warn(`Não foi possível dar zoom na camada ${layerId}:`, bboxError);
-        }
+        // O Auto-zoom automático foi desativado a pedido do usuário,
+        // para preservar a visão travada (viewport atual) ao adicionar novas camadas para comparação.
+        // O usuário pode usar o botão 'Centralizar Camada' no LayerControl se desejar o zoom.
 
       } catch (error) {
         console.error(`Erro ao carregar a camada ${layerId}:`, error);
@@ -244,7 +309,7 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
     };
 
     activeLayers.forEach(fetchLayerData);
-  }, [activeLayers, geoData]);
+  }, [activeLayers, geoData, clippedLayers, setGeoData]);
 
   // Efeito para registrar as texturas (padrões) dinâmicas no MapLibre GL
   useEffect(() => {
@@ -304,8 +369,9 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
       if (!data) return null;
 
       const sym = symbologyConfig[layerId] || {};
+      const baseLayerId = layerId.split('__')[0];
       
-      const baseColor = sym.baseColor || stringToColor(layerId);
+      const baseColor = sym.baseColor || stringToColor(baseLayerId);
       let featureColor = baseColor;
       let featurePattern = null;
 
@@ -405,6 +471,31 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
             baseLineFilter = ['all', baseLineFilter, exclusionExpr];
             basePointFilter = ['all', basePointFilter, exclusionExpr];
           }
+        }
+      }
+
+      // Expressão Dinâmica de Rótulo (Aproveita a renomeação de classes se a coluna for a mesma)
+      let textFieldExpr = ['to-string', ['get', sym.labelProperty]];
+
+      if (sym.classLabels && sym.property && sym.labelProperty === sym.property) {
+        if (sym.classificationType === 'numerical' && sym.breaks && sym.breaks.length > 0) {
+          const stepTextExpr = ['step', ['to-number', ['get', sym.property]]];
+          const firstLabel = sym.breaks[0].label;
+          stepTextExpr.push(sym.classLabels[firstLabel] !== undefined ? sym.classLabels[firstLabel] : firstLabel);
+
+          for (let i = 1; i < sym.breaks.length; i++) {
+            const stopVal = sym.breaks[i].lower;
+            const label = sym.breaks[i].label;
+            stepTextExpr.push(stopVal, sym.classLabels[label] !== undefined ? sym.classLabels[label] : label);
+          }
+          textFieldExpr = stepTextExpr;
+        } else if (sym.palette) {
+          const matchTextExpr = ['match', ['to-string', ['get', sym.property]]];
+          Object.keys(sym.palette).forEach(val => {
+            matchTextExpr.push(val, sym.classLabels[val] !== undefined ? sym.classLabels[val] : val);
+          });
+          matchTextExpr.push(['to-string', ['get', sym.labelProperty]]); // fallback
+          textFieldExpr = matchTextExpr;
         }
       }
 
@@ -509,6 +600,29 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
             }}
             filter={basePointFilter}
           />
+          
+          {/* Rótulos (Textos Dinâmicos) */}
+          {sym?.labelsEnabled && sym?.labelProperty && (
+            <Layer
+              id={`label-${layerId}`}
+              type="symbol"
+              layout={{
+                'text-field': textFieldExpr,
+                'text-size': sym.labelSize || 12,
+                'text-anchor': 'center',
+                'text-justify': 'center',
+                'symbol-placement': data?.features?.[0]?.geometry?.type?.includes('LineString') ? 'line' : 'point',
+                'text-allow-overlap': false
+              }}
+              paint={{
+                'text-color': sym.labelColor || '#FFFFFF',
+                'text-halo-color': sym.labelHaloColor || '#000000',
+                'text-halo-width': 1.5,
+                'text-halo-blur': 0.5
+              }}
+              filter={['has', sym.labelProperty]}
+            />
+          )}
         </Source>
       );
     });
@@ -691,7 +805,7 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
           <ScaleControl position="bottom-left" maxWidth={150} unit="metric" />
 
           {/* Cartela de Informações do Mapa (Editável) */}
-          <div className="absolute bottom-[60px] left-4 bg-slate-900/90 border border-slate-700/50 p-4 rounded-xl shadow-2xl backdrop-blur-sm max-w-[350px] z-10 hover:border-blue-500/50 transition-colors mt-2">
+          <div id="map-info-panel" className="absolute bottom-[60px] left-4 bg-slate-900/90 border border-slate-700/50 p-4 rounded-xl shadow-2xl backdrop-blur-sm max-w-[350px] z-10 hover:border-blue-500/50 transition-colors mt-2">
             <input
               type="text"
               value={mapTitle}
@@ -758,6 +872,7 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
 
       {/* Botão de Exportar PDF */}
       <button
+        id="export-pdf-button"
         onClick={exportToPDF}
         disabled={isExporting}
         className="absolute bottom-[160px] right-[10px] bg-blue-600 hover:bg-blue-500 text-white rounded-full p-3 shadow-lg shadow-blue-900/50 border border-blue-400/50 transition-all z-20 group disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
@@ -868,6 +983,67 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
           )}
         </div>
       </div>
+
+      {/* Motor de PDF A4 Paisagem (Renderizado invisivelmente) */}
+      <div style={{ position: 'fixed', top: 0, left: 0, zIndex: -1000, pointerEvents: 'none', opacity: 0 }}>
+        {isExporting && printSnapshot && !showPrintPreview && (
+          <PrintLayout 
+            mapImage={printSnapshot}
+            mapTitle={mapTitle}
+            mapDesc={mapDesc}
+            activeLayers={activeLayers}
+            symbologyConfig={symbologyConfig}
+            printMetadata={printMetadata}
+            onReady={handlePrintReady}
+          />
+        )}
+      </div>
+
+      {/* Modal de Preview do PDF */}
+      {showPrintPreview && finalPdfImage && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-8">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl flex flex-col w-full max-w-6xl max-h-full overflow-hidden">
+            
+            <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800/50">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Printer size={20} className="text-blue-400" />
+                Pré-visualização do PDF Cartográfico
+              </h2>
+              <button onClick={cancelPrint} className="p-2 text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-700 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 p-6 overflow-auto bg-slate-900/50 custom-scrollbar flex items-center justify-center">
+              <div className="relative shadow-2xl border border-slate-800">
+                {/* Mostra a imagem exata que irá pro PDF */}
+                <img 
+                  src={finalPdfImage} 
+                  alt="Preview do PDF" 
+                  className="max-h-[70vh] object-contain bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-700 bg-slate-800 flex justify-end gap-3">
+              <button 
+                onClick={cancelPrint}
+                className="px-6 py-2.5 rounded-xl font-semibold text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={downloadConfirmedPdf}
+                className="px-6 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-900/50 transition-colors flex items-center gap-2"
+              >
+                <Download size={18} />
+                Confirmar e Baixar PDF
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

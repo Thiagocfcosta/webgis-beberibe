@@ -10,6 +10,9 @@ export async function GET(request, { params }) {
   }
 
   try {
+    const { searchParams } = new URL(request.url);
+    const clip = searchParams.get('clip') === 'true';
+
     // 1. Descobrir a coluna de geometria
     const geomMeta = await query(`
       SELECT f_geometry_column AS geom_col
@@ -21,10 +24,17 @@ export async function GET(request, { params }) {
     if (geomMeta.rows.length > 0) {
       geomColumn = geomMeta.rows[0].geom_col;
     }
+    
+    let geomSelect = `ST_SimplifyPreserveTopology(${geomColumn}, 0.0001)`;
+    let fromClause = `(SELECT * FROM ${layer}) inputs`;
+    
+    // Se o usuário pediu para recortar, intersecionamos com beberibe_limite_municipal_2025
+    if (clip && layer !== 'beberibe_limite_municipal_2025') {
+      geomSelect = `ST_Intersection(${geomSelect}, (SELECT ST_Union(geom) FROM beberibe_limite_municipal_2025))`;
+      fromClause = `(SELECT * FROM ${layer} WHERE ST_Intersects(${geomColumn}, (SELECT ST_Union(geom) FROM beberibe_limite_municipal_2025))) inputs`;
+    }
 
     // Construct a GeoJSON FeatureCollection directly in PostGIS
-    // We use ST_SimplifyPreserveTopology to reduce the payload size
-    // and speed up the rendering on the frontend.
     const text = `
       SELECT jsonb_build_object(
         'type', 'FeatureCollection',
@@ -34,10 +44,12 @@ export async function GET(request, { params }) {
         SELECT jsonb_build_object(
           'type', 'Feature',
           'id', row_number() OVER (),
-          'geometry', ST_AsGeoJSON(ST_SimplifyPreserveTopology(${geomColumn}, 0.0001))::jsonb,
+          'geometry', ST_AsGeoJSON(${geomSelect})::jsonb,
           'properties', to_jsonb(inputs) - '${geomColumn}'
         ) AS feature
-        FROM (SELECT * FROM ${layer}) inputs
+        FROM ${fromClause}
+        -- Evita retornar geometrias vazias causadas por intersecções nulas
+        WHERE NOT ST_IsEmpty(${geomSelect})
       ) features;
     `;
     

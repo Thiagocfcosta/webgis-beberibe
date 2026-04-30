@@ -12,6 +12,7 @@ export default function Home() {
   // Elevando o estado dos dados espaciais para serem lidos pelo menu lateral
   const [geoData, setGeoData] = useState({});
   const [symbologyConfig, setSymbologyConfig] = useState({});
+  const [clippedLayers, setClippedLayers] = useState({}); // { layerId: true } se deve recortar
 
   return (
     <main className="w-screen h-screen overflow-hidden bg-slate-900 relative flex">
@@ -22,8 +23,11 @@ export default function Home() {
         basemapStyle={basemapStyle}
         setBasemapStyle={setBasemapStyle}
         geoData={geoData}
+        setGeoData={setGeoData}
         symbologyConfig={symbologyConfig}
         setSymbologyConfig={setSymbologyConfig}
+        clippedLayers={clippedLayers}
+        setClippedLayers={setClippedLayers}
       />
 
       {/* Visualizador do Mapa */}
@@ -34,6 +38,7 @@ export default function Home() {
           geoData={geoData}
           setGeoData={setGeoData}
           symbologyConfig={symbologyConfig}
+          clippedLayers={clippedLayers}
         />
       </div>
 

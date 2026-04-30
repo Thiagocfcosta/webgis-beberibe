@@ -22,10 +22,11 @@ function Import-GeoFile {
     Write-Host "Importando: $LayerName -> tabela: $cleanLayer"
     
     # -s 4326: SRID
+    # -d: DROP table before creating (Idempotent!)
     # -I: Cria índice espacial
     # -W UTF-8: Encoding (tenta UTF-8, se falhar o LATIN1 pode ser tentado)
-    $args = @("-s", "4326", "-I", "-W", "LATIN1", "`"$FilePath`"", $cleanLayer)
-    $command = "& `"$shp2pgsql`" -s 4326 -I -W `"LATIN1`" `"$FilePath`" $cleanLayer | & `"$psql`" -U postgres -d beberibe -q"
+    $args = @("-d", "-s", "4326", "-I", "-W", "LATIN1", "`"$FilePath`"", $cleanLayer)
+    $command = "& `"$shp2pgsql`" -d -s 4326 -I -W `"LATIN1`" `"$FilePath`" $cleanLayer | & `"$psql`" -U postgres -d beberibe -q"
     
     Invoke-Expression $command
 }

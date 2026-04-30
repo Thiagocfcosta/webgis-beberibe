@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Layers, ChevronRight, Map as MapIcon, Database, ChevronDown, Moon, Sun, Globe, Info, Palette, GripVertical } from 'lucide-react';
+import { Layers, ChevronRight, Map as MapIcon, Database, ChevronDown, Moon, Sun, Globe, Info, Palette, GripVertical, Scissors } from 'lucide-react';
 
 const stringToColor = (str) => {
   let hash = 0;
@@ -23,7 +23,7 @@ const hslToHex = (h, s, l) => {
   return `#${f(0)}${f(8)}${f(4)}`;
 };
 
-export default function LayerControl({ activeLayers, setActiveLayers, basemapStyle, setBasemapStyle, geoData, symbologyConfig, setSymbologyConfig }) {
+export default function LayerControl({ activeLayers, setActiveLayers, basemapStyle, setBasemapStyle, geoData, setGeoData, symbologyConfig, setSymbologyConfig, clippedLayers, setClippedLayers }) {
   const [layers, setLayers] = useState([]);
   const [isOpen, setIsOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,11 +57,66 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
   }, []);
 
   const toggleLayer = (layerId) => {
-    setActiveLayers(prev => 
-      prev.includes(layerId) 
-        ? prev.filter(id => id !== layerId)
-        : [layerId, ...prev] // Adiciona no topo das ativas
-    );
+    setActiveLayers(prev => prev.filter(id => id !== layerId)); // Apenas remove
+  };
+
+  const addLayerFromCatalog = (baseLayerId) => {
+    setActiveLayers(prev => {
+      // Verifica se a camada original (ou alguma cópia) já está ativa
+      const activeInstances = prev.filter(id => id === baseLayerId || id.startsWith(`${baseLayerId}__copy_`));
+      
+      let newLayerId = baseLayerId;
+      
+      // Se já houver instâncias ativas, cria como cópia
+      if (activeInstances.length > 0) {
+        newLayerId = `${baseLayerId}__copy_${Date.now()}`;
+        
+        // Tenta clonar a simbologia da primeira instância ativa encontrada
+        const templateId = activeInstances[0];
+        if (symbologyConfig[templateId]) {
+          setSymbologyConfig(s => ({
+            ...s,
+            [newLayerId]: JSON.parse(JSON.stringify(s[templateId]))
+          }));
+        }
+      }
+      
+      return [newLayerId, ...prev]; // Adiciona no topo
+    });
+  };
+
+  const duplicateLayer = (layerId) => {
+    const baseLayerId = layerId.split('__')[0];
+    const newLayerId = `${baseLayerId}__copy_${Date.now()}`;
+    
+    // Clona a configuração de simbologia atual para a nova camada
+    if (symbologyConfig[layerId]) {
+      setSymbologyConfig(prev => ({
+        ...prev,
+        [newLayerId]: JSON.parse(JSON.stringify(prev[layerId]))
+      }));
+    }
+
+    setActiveLayers(prev => {
+      const currentIndex = prev.indexOf(layerId);
+      const newLayers = [...prev];
+      // Insere logo acima da camada original
+      newLayers.splice(currentIndex, 0, newLayerId);
+      return newLayers;
+    });
+  };
+
+  const toggleClipLayer = (layerId) => {
+    setClippedLayers(prev => ({
+      ...prev,
+      [layerId]: !prev[layerId]
+    }));
+    // Limpa os dados em cache para forçar a API a buscar a versão nova (cortada ou inteira)
+    setGeoData(prev => {
+      const next = { ...prev };
+      delete next[layerId];
+      return next;
+    });
   };
 
   const toggleCategory = (categoryName) => {
@@ -267,6 +322,23 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
     });
   };
 
+  const updateClassLabel = (layerId, propertyValue, newLabel) => {
+    setSymbologyConfig(prev => {
+      const existing = prev[layerId];
+      if (!existing || !existing.palette) return prev;
+      return {
+        ...prev,
+        [layerId]: {
+          ...existing,
+          classLabels: {
+            ...(existing.classLabels || {}),
+            [propertyValue]: newLabel
+          }
+        }
+      };
+    });
+  };
+
   const updateFillVisibility = (layerId, propertyValue, isFillVisible) => {
     setSymbologyConfig(prev => {
       const existing = prev[layerId];
@@ -313,6 +385,19 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
             ...(existing.lineStyles || {}),
             [propertyValue]: lineStyleType
           }
+        }
+      };
+    });
+  };
+
+  const updateLabelConfig = (layerId, key, value) => {
+    setSymbologyConfig(prev => {
+      const existing = prev[layerId] || {};
+      return {
+        ...prev,
+        [layerId]: {
+          ...existing,
+          [key]: value
         }
       };
     });
@@ -423,10 +508,16 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
               </div>
               <div className="space-y-1.5">
                 {activeLayers.map((layerId) => {
-                  const layer = layers.find(l => l.id === layerId);
-                  if (!layer) return null;
+                  const baseLayerId = layerId.split('__')[0];
+                  const baseLayer = layers.find(l => l.id === baseLayerId);
+                  if (!baseLayer) return null;
 
-                  const layerColor = stringToColor(layer.id);
+                  // Criar uma camada virtual para a interface
+                  const layer = { ...baseLayer, id: layerId };
+                  const isCopy = layerId.includes('__copy_');
+                  const layerName = isCopy ? `${layer.name} (Cópia)` : layer.name;
+
+                  const layerColor = stringToColor(baseLayerId);
                   const isPolygon = layer.type.includes('POLYGON');
                   const isLine = layer.type.includes('LINE');
                   const isPoint = layer.type.includes('POINT');
@@ -447,8 +538,8 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
                           <GripVertical size={14} />
                         </div>
                         
-                        <div className="flex-1 text-xs font-medium text-white leading-tight">
-                          {layer.name}
+                        <div className="flex-1 text-xs font-medium text-white leading-tight truncate">
+                          {layerName}
                         </div>
                         
                         {/* Icone da Geometria */}
@@ -460,6 +551,15 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
 
                         {/* Botões de Ação */}
                         <div className="flex items-center gap-2 shrink-0">
+                          {geoData[layer.id] && (
+                            <button
+                              onClick={() => toggleClipLayer(layer.id)}
+                              className={`transition-colors ${clippedLayers[layer.id] ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}
+                              title={clippedLayers[layer.id] ? "Dado recortado (Beberibe). Clique para ver completo." : "Dado completo. Clique para recortar (Beberibe)."}
+                            >
+                              <Scissors size={14} />
+                            </button>
+                          )}
                           {geoData[layer.id] && (
                             <button
                               onClick={() => setExpandedSettings(expandedSettings === layer.id ? null : layer.id)}
@@ -492,6 +592,13 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
                             </div>
                           </div>
                           
+                          {/* Botão Duplicar */}
+                          <button onClick={() => duplicateLayer(layer.id)} className="text-slate-500 hover:text-blue-400 ml-1 transition-colors" title="Duplicar Camada (Nova visualização)">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                            </svg>
+                          </button>
+
                           {/* Botão de Desligar (Remove from activeLayers) */}
                           <button onClick={() => toggleLayer(layer.id)} className="text-slate-500 hover:text-red-400 ml-1" title="Desligar Camada">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -589,6 +696,72 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
                             )}
                           </div>
 
+                          {/* Estilização de Rótulos (Labels) */}
+                          <div className="space-y-3 border-b border-white/10 pb-4">
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+                              <span>Rótulos (Textos no Mapa)</span>
+                              <label className="relative inline-flex items-center cursor-pointer" title="Ligar/Desligar Rótulos">
+                                <input 
+                                  type="checkbox" 
+                                  className="sr-only peer"
+                                  checked={symbologyConfig[layer.id]?.labelsEnabled || false}
+                                  onChange={(e) => updateLabelConfig(layer.id, 'labelsEnabled', e.target.checked)}
+                                />
+                                <div className="w-7 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
+                              </label>
+                            </div>
+                            
+                            {symbologyConfig[layer.id]?.labelsEnabled && (
+                              <div className="bg-slate-800/30 p-2 rounded flex flex-col gap-2">
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[10px] text-slate-500 font-bold uppercase">Propriedade do Texto</span>
+                                  <select 
+                                    className="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded px-2 py-1 outline-none focus:border-blue-500"
+                                    value={symbologyConfig[layer.id]?.labelProperty || ''}
+                                    onChange={(e) => updateLabelConfig(layer.id, 'labelProperty', e.target.value)}
+                                  >
+                                    <option value="">-- Selecione uma coluna --</option>
+                                    {getValidProperties(layer.id).map(key => (
+                                      <option key={`lbl-${key}`} value={key}>{key}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div className="flex items-center justify-between text-xs text-slate-300 mt-1">
+                                  <span className="w-24">Tamanho</span>
+                                  <input 
+                                    type="range" 
+                                    min="8" max="32" step="1" 
+                                    value={symbologyConfig[layer.id]?.labelSize || 12}
+                                    onChange={(e) => updateLabelConfig(layer.id, 'labelSize', parseInt(e.target.value))}
+                                    className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                  />
+                                  <span className="text-[10px] ml-2 w-4 text-right">{symbologyConfig[layer.id]?.labelSize || 12}</span>
+                                </div>
+
+                                <div className="flex items-center justify-between mt-1">
+                                  <span className="text-xs text-slate-300">Cor do Texto</span>
+                                  <input 
+                                    type="color" 
+                                    value={symbologyConfig[layer.id]?.labelColor || '#FFFFFF'}
+                                    onChange={(e) => updateLabelConfig(layer.id, 'labelColor', e.target.value)}
+                                    className="w-6 h-6 rounded bg-transparent border-none cursor-pointer p-0"
+                                  />
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-slate-300">Cor do Contorno (Halo)</span>
+                                  <input 
+                                    type="color" 
+                                    value={symbologyConfig[layer.id]?.labelHaloColor || '#000000'}
+                                    onChange={(e) => updateLabelConfig(layer.id, 'labelHaloColor', e.target.value)}
+                                    className="w-6 h-6 rounded bg-transparent border-none cursor-pointer p-0"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
                           {/* Estilização Temática (Classificada) */}
                           <div>
                             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-2">Classificar por Atributo</div>
@@ -653,7 +826,13 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
                                         </select>
                                       )}
                                     </div>
-                                    <span className={`text-slate-300 truncate flex-1 transition-opacity ${!isVisible ? 'opacity-50 line-through' : ''}`} title={val}>{val}</span>
+                                    <input 
+                                      type="text"
+                                      className={`bg-transparent text-slate-300 text-[10px] flex-1 outline-none border-b border-transparent hover:border-slate-600 focus:border-blue-500 transition-all min-w-0 ${!isVisible ? 'opacity-50 line-through' : ''}`}
+                                      value={symbologyConfig[layer.id].classLabels?.[val] !== undefined ? symbologyConfig[layer.id].classLabels[val] : val}
+                                      onChange={(e) => updateClassLabel(layer.id, val, e.target.value)}
+                                      title="Editar Rótulo na Legenda"
+                                    />
                                     
                                     {/* Toggle Preenchimento Individual */}
                                     {layer.type.includes('POLYGON') && (
@@ -672,6 +851,36 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
                               </div>
                             )}
                           </div>
+
+                          {/* Configurações da Legenda do PDF */}
+                          <div className="space-y-3 pt-2">
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+                              <span>Convenções Cartográficas (PDF)</span>
+                              <label className="relative inline-flex items-center cursor-pointer" title="Ligar/Desligar Camada na Legenda do PDF">
+                                <input 
+                                  type="checkbox" 
+                                  className="sr-only peer"
+                                  checked={symbologyConfig[layer.id]?.showInLegend !== false}
+                                  onChange={(e) => updateLabelConfig(layer.id, 'showInLegend', e.target.checked)}
+                                />
+                                <div className="w-7 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
+                              </label>
+                            </div>
+                            
+                            <div className={`transition-opacity ${symbologyConfig[layer.id]?.showInLegend === false ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[10px] text-slate-500 font-bold uppercase">Título na Legenda</span>
+                                <input 
+                                  type="text" 
+                                  className="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded px-2 py-1.5 outline-none focus:border-blue-500 placeholder-slate-500"
+                                  placeholder={layerName}
+                                  value={symbologyConfig[layer.id]?.legendTitle || ''}
+                                  onChange={(e) => updateLabelConfig(layer.id, 'legendTitle', e.target.value)}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          
                         </div>
                       )}
                     </div>
@@ -695,7 +904,10 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
               <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider px-1">Biblioteca de Dados</div>
               {Object.entries(groupedLayers).sort().map(([categoryName, catLayers]) => {
                 const isExpanded = expandedCategories[categoryName];
-                const activeCount = catLayers.filter(l => activeLayers.includes(l.id)).length;
+                // Conta quantas instâncias das camadas desta categoria estão ativas
+                const activeCount = catLayers.reduce((sum, layer) => {
+                  return sum + activeLayers.filter(id => id === layer.id || id.startsWith(`${layer.id}__copy_`)).length;
+                }, 0);
                 
                 return (
                   <div key={categoryName} className="border border-white/5 bg-white/5 rounded-xl overflow-hidden">
@@ -717,27 +929,30 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
                     <div className={`transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
                       <div className="p-2 space-y-1">
                         {catLayers.map(layer => {
-                          const isActive = activeLayers.includes(layer.id);
+                          const instancesCount = activeLayers.filter(id => id === layer.id || id.startsWith(`${layer.id}__copy_`)).length;
+                          const isActive = instancesCount > 0;
+                          
                           return (
-                            <label 
+                            <button 
                               key={`catalog-${layer.id}`}
-                              className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-all duration-200 border ${isActive ? 'bg-blue-500/10 border-blue-500/30 opacity-60' : 'border-transparent hover:bg-white/10'}`}
+                              onClick={() => addLayerFromCatalog(layer.id)}
+                              className={`w-full flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-all duration-200 border text-left group hover:bg-slate-700/50 ${isActive ? 'bg-blue-500/5 border-blue-500/20' : 'border-transparent'}`}
+                              title="Clique para adicionar ao mapa"
                             >
-                              <div className="relative flex items-center justify-center mt-0.5">
-                                <input 
-                                  type="checkbox" 
-                                  className="peer sr-only"
-                                  checked={isActive}
-                                  onChange={() => toggleLayer(layer.id)}
-                                />
-                                <div className="w-4 h-4 rounded border border-slate-500 bg-slate-800/50 peer-checked:bg-blue-500 peer-checked:border-blue-500 transition-colors flex items-center justify-center">
-                                  <svg className={`w-3 h-3 text-white transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              <div className="relative flex items-center justify-center mt-0.5 shrink-0">
+                                <div className="w-5 h-5 rounded-md border border-slate-600 bg-slate-800 flex items-center justify-center group-hover:border-blue-400 group-hover:bg-blue-500/20 transition-all">
+                                  <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                                   </svg>
                                 </div>
+                                {instancesCount > 0 && (
+                                  <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white border border-slate-900 shadow-sm">
+                                    {instancesCount}
+                                  </div>
+                                )}
                               </div>
-                              <div className="flex-1 text-xs font-medium leading-tight select-none pt-0.5">
-                                <span className={isActive ? 'text-blue-200' : 'text-slate-300'}>{layer.name}</span>
+                              <div className="flex-1 text-xs font-medium leading-tight pt-0.5">
+                                <span className={isActive ? 'text-blue-300' : 'text-slate-300'}>{layer.name}</span>
                               </div>
                               <div className="relative group/tooltip flex items-center cursor-help shrink-0 pt-0.5" onClick={(e) => e.preventDefault()}>
                                 <Info size={14} className="text-slate-500 hover:text-blue-400 transition-colors" />
@@ -757,7 +972,7 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
                                   </div>
                                 </div>
                               </div>
-                            </label>
+                            </button>
                           );
                         })}
                       </div>
