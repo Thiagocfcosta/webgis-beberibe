@@ -38,7 +38,7 @@ export async function GET(request, { params }) {
     const text = `
       SELECT jsonb_build_object(
         'type', 'FeatureCollection',
-        'features', jsonb_agg(features.feature)
+        'features', COALESCE(jsonb_agg(features.feature), '[]'::jsonb)
       ) AS geojson
       FROM (
         SELECT jsonb_build_object(

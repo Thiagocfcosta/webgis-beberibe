@@ -723,8 +723,8 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
             aggregatedProps = { Contagem: 0 };
             numericCols.forEach(k => aggregatedProps[k] = 0);
 
-            features.forEach(f => {
-              let fVal = f.properties[prop];
+            features?.forEach(f => {
+              let fVal = f.properties?.[prop];
               fVal = (fVal !== undefined && fVal !== null) ? fVal : 'Outros';
               
               let fClass = String(fVal);
