@@ -53,7 +53,7 @@ export default function Home() {
     setActiveMapId(null); // Vira um projeto novo/mesclado, não deve sobrescrever o antigo ao salvar
 
     if (config.activeLayers) {
-      setActiveLayers(prev => ({ ...prev, ...config.activeLayers }));
+      setActiveLayers(prev => Array.from(new Set([...prev, ...config.activeLayers])));
     }
     if (config.symbologyConfig) {
       setSymbologyConfig(prev => ({ ...prev, ...config.symbologyConfig }));
