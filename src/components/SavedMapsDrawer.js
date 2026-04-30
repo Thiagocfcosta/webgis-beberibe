@@ -348,7 +348,7 @@ export default function SavedMapsDrawer({
   const comunidadeLogs = filteredLogs.filter(l => l.user_role === 'Visualizador');
 
   const favoriteMaps = maps.filter(m => m.is_favorite && m.id !== activeMapId);
-  const teamFavoriteMaps = teamSharedMaps.filter(m => m.is_favorite && m.id !== activeMapId);
+  const teamFavoriteMaps = currentTabSharedMaps.filter(m => m.is_favorite && m.id !== activeMapId);
 
   const activeMap = maps.find(m => m.id === activeMapId) || sharedMaps.find(m => m.id === activeMapId);
 
