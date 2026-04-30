@@ -21,7 +21,7 @@ export async function DELETE(req, { params }) {
   if (!(await checkAdmin())) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
   try {
-    const { id } = params;
+    const { id } = await params;
     
     // Proteção para não deletar a si mesmo ou o admin principal acidentalmente
     const session = await getServerSession(authOptions);
@@ -44,7 +44,7 @@ export async function PUT(req, { params }) {
   if (!(await checkAdmin())) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     
     if (body.role) {
