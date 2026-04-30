@@ -402,18 +402,18 @@ export default function SavedMapsDrawer({
     const isActive = activeMapId === map.id && !hideBorder;
     return (
     <div key={map.id} className={`relative hover:bg-slate-700 p-3 rounded-lg transition-colors cursor-pointer group ${isActive ? 'bg-slate-700 border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-800 border border-slate-700'}`} onClick={() => handleLoad(map)}>
-      <div className="flex justify-between items-start">
-        <h4 className="text-sm font-bold text-blue-400 group-hover:text-blue-300 mb-1 pr-24 flex items-center gap-2">
-          {map.title}
-          {map.is_shared && <Users size={12} className="text-blue-500" title="Compartilhado com a equipe" />}
-          {map.is_shared_community && map.community_status === 'APPROVED' && <Globe size={12} className="text-emerald-500" title="Compartilhado com a comunidade" />}
+      <div className="flex justify-between items-start gap-2 min-h-[28px]">
+        <h4 className="text-sm font-bold text-blue-400 group-hover:text-blue-300 mb-1 flex items-center flex-wrap gap-2 flex-1">
+          <span className="line-clamp-2">{map.title}</span>
+          {map.is_shared && <Users size={12} className="text-blue-500 shrink-0" title="Compartilhado com a equipe" />}
+          {map.is_shared_community && map.community_status === 'APPROVED' && <Globe size={12} className="text-emerald-500 shrink-0" title="Compartilhado com a comunidade" />}
           {map.favorites_count > 0 && (
-            <span className="flex items-center gap-1 text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded ml-1">
+            <span className="flex items-center gap-1 text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded shrink-0">
               <Star size={10} className="fill-current" /> {map.favorites_count}
             </span>
           )}
         </h4>
-        <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           <button 
             onClick={(e) => handleToggleFavorite(map.id, map.is_favorite, e)}
             className={`p-1 rounded transition-colors ${map.is_favorite ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
