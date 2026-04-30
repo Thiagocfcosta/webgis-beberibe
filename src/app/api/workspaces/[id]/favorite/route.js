@@ -17,7 +17,7 @@ export async function PATCH(req, { params }) {
     const { id } = await params;
     const { is_favorite } = await req.json();
 
-    const checkRes = await pool.query('SELECT user_id, is_shared FROM saved_maps WHERE id = $1', [id]);
+    const checkRes = await pool.query('SELECT user_id, is_shared, is_shared_community, community_status FROM saved_maps WHERE id = $1', [id]);
     
     if (checkRes.rows.length === 0) {
       return NextResponse.json({ error: 'Projeto não encontrado' }, { status: 404 });
@@ -25,8 +25,10 @@ export async function PATCH(req, { params }) {
 
     const map = checkRes.rows[0];
     
+    const isSharedCommunity = map.is_shared_community && map.community_status === 'APPROVED';
+
     // Só pode favoritar se for o dono ou se o projeto for compartilhado
-    if (map.user_id.toString() !== session.user.id && !map.is_shared) {
+    if (map.user_id.toString() !== session.user.id && !map.is_shared && !isSharedCommunity) {
       return NextResponse.json({ error: 'Você não tem permissão para favoritar este projeto privado' }, { status: 403 });
     }
 
