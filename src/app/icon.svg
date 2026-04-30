@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Eixo Monumental: linha reta diagonal (baixo-esquerda → cima-direita) -->
+  <line x1="29" y1="68" x2="82" y2="17" stroke="#B05A3C" stroke-width="5" stroke-linecap="round"/>
+  <!-- Eixo Rodoviário: arco curvo (círculo esquerda → baixo-direita) -->
+  <path d="M25 28 Q80 15 71 67" stroke="#B05A3C" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- Nós: grande à esquerda (mais claro), demais em terracota escuro -->
+  <circle cx="25" cy="28" r="11" fill="#D4855A"/>
+  <circle cx="82" cy="17" r="7"  fill="#B84B35"/>
+  <circle cx="29" cy="68" r="9"  fill="#B84B35"/>
+  <circle cx="71" cy="67" r="7"  fill="#B84B35"/>
+</svg>
