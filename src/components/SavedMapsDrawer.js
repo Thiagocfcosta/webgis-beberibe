@@ -385,7 +385,7 @@ export default function SavedMapsDrawer({
   const activeMap = maps.find(m => m.id === activeMapId) || sharedMaps.find(m => m.id === activeMapId);
 
   const renderLogCard = (log) => (
-    <div key={log.id} className="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-lg transition-colors cursor-pointer group flex flex-col gap-1" onClick={() => handleLoad(log.config_json)}>
+    <div key={log.id} className="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-lg transition-colors cursor-pointer group flex flex-col gap-1" onClick={() => handleLoad({ id: null, config_json: log.config_json })}>
       <h4 className="text-xs font-bold text-slate-300 group-hover:text-white line-clamp-1">
         {log.map_title} 
         {log.user_email && <span className="text-[9px] font-normal text-slate-500 ml-2 bg-slate-900 px-1 py-0.5 rounded">by: {log.user_email}</span>}
