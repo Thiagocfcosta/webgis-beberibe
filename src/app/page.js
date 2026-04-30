@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import LayerControl from '@/components/LayerControl';
 import MapViewer from '@/components/MapViewer';
 import DashboardPanel from '@/components/DashboardPanel';
@@ -13,9 +13,77 @@ export default function Home() {
   const [geoData, setGeoData] = useState({});
   const [symbologyConfig, setSymbologyConfig] = useState({});
   const [clippedLayers, setClippedLayers] = useState({}); // { layerId: true } se deve recortar
+  const [toastMessage, setToastMessage] = useState(null); // Sistema global de notificações
+  
+  
+  const mapRef = useRef(null); // Ref global do mapa para capturar viewport ao salvar
+
+  // Carrega os dados de um Workspace (Projeto Salvo)
+  const loadWorkspace = (config) => {
+    if (config.activeLayers) setActiveLayers(config.activeLayers);
+    if (config.basemapStyle) setBasemapStyle(config.basemapStyle);
+    if (config.symbologyConfig) setSymbologyConfig(config.symbologyConfig);
+    if (config.clippedLayers) setClippedLayers(config.clippedLayers);
+    
+    showToast('Projeto carregado com sucesso!');
+    
+    // Anima a câmera para o estado salvo
+    if (config.viewState && mapRef.current) {
+      const map = mapRef.current.getMap();
+      map.flyTo({
+        center: [config.viewState.longitude, config.viewState.latitude],
+        zoom: config.viewState.zoom,
+        pitch: config.viewState.pitch,
+        bearing: config.viewState.bearing,
+        duration: 2000
+      });
+    }
+  };
+
+  // Prepara o JSON exato do estado atual
+  const getWorkspaceConfig = () => {
+    let viewState = {};
+    if (mapRef.current) {
+      const map = mapRef.current.getMap();
+      viewState = {
+        longitude: map.getCenter().lng,
+        latitude: map.getCenter().lat,
+        zoom: map.getZoom(),
+        pitch: map.getPitch(),
+        bearing: map.getBearing()
+      };
+    }
+
+    return {
+      activeLayers,
+      basemapStyle,
+      symbologyConfig,
+      clippedLayers,
+      viewState
+    };
+  };
+
+  // Funções de QoL (Qualidade de Vida)
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const clearMap = () => {
+    setActiveLayers([]);
+    showToast('Camadas removidas da tela.');
+  };
 
   return (
     <main className="w-screen h-screen overflow-hidden bg-slate-900 relative flex">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[100] bg-emerald-600/90 text-white px-5 py-2.5 rounded-full shadow-xl border border-emerald-500 backdrop-blur-sm animate-in fade-in slide-in-from-top-5 duration-300 font-medium text-sm flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          {toastMessage}
+        </div>
+      )}
+
       {/* Sidebar de Controle */}
       <LayerControl 
         activeLayers={activeLayers} 
@@ -28,17 +96,21 @@ export default function Home() {
         setSymbologyConfig={setSymbologyConfig}
         clippedLayers={clippedLayers}
         setClippedLayers={setClippedLayers}
+        clearMap={clearMap}
+        showToast={showToast}
       />
 
       {/* Visualizador do Mapa */}
       <div className="flex-1 h-full relative">
         <MapViewer 
+          globalMapRef={mapRef}
           activeLayers={activeLayers} 
           basemapStyle={basemapStyle} 
           geoData={geoData}
           setGeoData={setGeoData}
           symbologyConfig={symbologyConfig}
           clippedLayers={clippedLayers}
+          getWorkspaceConfig={getWorkspaceConfig}
         />
       </div>
 
@@ -47,6 +119,10 @@ export default function Home() {
         activeLayers={activeLayers}
         geoData={geoData}
         symbologyConfig={symbologyConfig}
+        getWorkspaceConfig={getWorkspaceConfig}
+        loadWorkspace={loadWorkspace}
+        clearMap={clearMap}
+        showToast={showToast}
       />
     </main>
   );

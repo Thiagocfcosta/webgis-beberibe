@@ -1,10 +1,19 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { BarChart3, ChevronRight, ChevronLeft, Users, Home, Map as MapIcon, Activity, Route, Leaf, Droplets } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+import { BarChart3, ChevronRight, ChevronLeft, Users, Home, Map as MapIcon, Activity, Route, Leaf, Droplets, LogIn, LogOut, FolderOpen, XCircle } from 'lucide-react';
+import LoginModal from './LoginModal';
+import SavedMapsDrawer from './SavedMapsDrawer';
+import AdminUsersModal from './AdminUsersModal';
+import { Shield } from 'lucide-react';
 
-export default function DashboardPanel({ activeLayers, geoData, symbologyConfig }) {
+export default function DashboardPanel({ activeLayers, geoData, symbologyConfig, getWorkspaceConfig, loadWorkspace, clearMap, showToast }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const { data: session, status } = useSession();
   const [fixedKpis, setFixedKpis] = useState(null);
 
   // Buscar KPIs fixos do Back-end
@@ -134,11 +143,64 @@ export default function DashboardPanel({ activeLayers, geoData, symbologyConfig 
 
   return (
     <>
-      {/* Botão flutuante para abrir o painel (quando fechado) */}
+      {/* Menu de Perfil / Login / Workspace (Flutuante no topo centro/direito) */}
+      <div className="absolute top-4 right-1/2 translate-x-1/2 md:right-4 md:translate-x-0 flex items-center gap-3 z-40">
+        {status === 'loading' ? (
+          <div className="w-10 h-10 bg-slate-800/50 rounded-full animate-pulse border border-slate-700"></div>
+        ) : session ? (
+          <div className="flex items-center gap-2 bg-slate-800/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-700 shadow-lg group">
+            <div className="flex flex-col items-end mr-1">
+              <span className="text-[10px] text-slate-400 font-semibold uppercase">{session.user.role}</span>
+              <span className="text-xs text-white font-medium">{session.user.name?.split(' ')[0]}</span>
+            </div>
+            
+            {/* Botão de Administração (apenas para Admins) */}
+            {(session.user.role === 'admin' || session.user.role === 'Administrador') && (
+              <button 
+                onClick={() => setIsAdminPanelOpen(true)}
+                className="w-7 h-7 bg-purple-600/30 hover:bg-purple-500/50 text-purple-400 hover:text-white rounded-full flex items-center justify-center transition-colors"
+                title="Administração de Usuários"
+              >
+                <Shield size={14} />
+              </button>
+            )}
+
+            {/* Botão de Workspace (apenas para logados) */}
+            <button 
+              onClick={() => {
+                setIsWorkspaceOpen(true);
+                // Fecha o dashboard analítico se abrir a gaveta no mobile para evitar sobreposição
+                if (window.innerWidth < 768) setIsOpen(false);
+              }}
+              className="w-7 h-7 bg-blue-600/30 hover:bg-blue-500/50 text-blue-400 hover:text-white rounded-full flex items-center justify-center transition-colors"
+              title="Meus Projetos"
+            >
+              <FolderOpen size={14} />
+            </button>
+            <button 
+              onClick={() => signOut()}
+              className="w-7 h-7 bg-slate-700 hover:bg-red-500/20 text-slate-300 hover:text-red-400 rounded-full flex items-center justify-center transition-colors ml-1"
+              title="Sair da Conta"
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+        ) : (
+          <button 
+            onClick={() => setIsLoginModalOpen(true)}
+            className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700/90 backdrop-blur-md px-4 py-2 text-sm font-medium text-white transition-all rounded-full shadow-lg border border-slate-700"
+          >
+            <LogIn size={18} className="text-blue-400" />
+            <span>Acesso Restrito</span>
+          </button>
+        )}
+      </div>
+
+      {/* Botão flutuante para abrir o painel analítico (quando fechado) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="absolute right-0 top-6 bg-slate-800/90 hover:bg-blue-600 backdrop-blur-md p-3 rounded-l-xl border border-r-0 border-slate-700 shadow-xl transition-all z-40 text-slate-300 hover:text-white"
+          className="absolute right-0 top-16 bg-slate-800/90 hover:bg-blue-600 backdrop-blur-md p-3 rounded-l-xl border border-r-0 border-slate-700 shadow-xl transition-all z-40 text-slate-300 hover:text-white"
         >
           <BarChart3 size={24} />
         </button>
@@ -311,6 +373,21 @@ export default function DashboardPanel({ activeLayers, geoData, symbologyConfig 
           
         </div>
       </div>
+
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+      
+      <SavedMapsDrawer 
+        isOpen={isWorkspaceOpen} 
+        onClose={() => setIsWorkspaceOpen(false)}
+        getWorkspaceConfig={getWorkspaceConfig}
+        loadWorkspace={loadWorkspace}
+        showToast={showToast}
+      />
+
+      <AdminUsersModal 
+        isOpen={isAdminPanelOpen}
+        onClose={() => setIsAdminPanelOpen(false)}
+      />
     </>
   );
 }

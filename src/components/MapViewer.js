@@ -8,6 +8,8 @@ import maplibregl from 'maplibre-gl';
 import * as htmlToImage from 'html-to-image';
 import jsPDF from 'jspdf';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { useSession } from 'next-auth/react';
+import LoginModal from './LoginModal';
 import { createPattern } from '../utils/patternGenerator';
 import PrintLayout from './PrintLayout';
 
@@ -21,8 +23,10 @@ const stringToColor = (str) => {
   return '#' + '00000'.substring(0, 6 - c.length) + c;
 };
 
-export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoData, symbologyConfig, clippedLayers }) {
-  const mapRef = useRef(null);
+export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, geoData, setGeoData, symbologyConfig, clippedLayers, getWorkspaceConfig }) {
+  // Se recebemos um ref de fora, usamos ele. Senão criamos um fallback.
+  const fallbackRef = useRef(null);
+  const mapRef = globalMapRef || fallbackRef;
   const [loadingLayers, setLoadingLayers] = useState(new Set());
   const [hoverInfo, setHoverInfo] = useState(null);
   const [cursor, setCursor] = useState('grab');
@@ -39,6 +43,9 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
   const [printMetadata, setPrintMetadata] = useState(null);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [finalPdfImage, setFinalPdfImage] = useState(null);
+  
+  const { data: session } = useSession();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const handlePrintReady = async () => {
     try {
@@ -91,7 +98,36 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
       const pdfHeight = pdf.internal.pageSize.getHeight();
       
       pdf.addImage(finalPdfImage, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Mapa_PDOT_Beberibe_${new Date().getTime()}.pdf`);
+      const safeTitle = mapTitle
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/gi, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '')
+        .toLowerCase() || 'mapa_webgis';
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, 'h').replace('h', 'm') + 's'; 
+      // ou apenas replace(/:/g, '') para ficar HHMMSS
+      // Vamos usar HH-MM-SS
+      const timeFormatted = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      
+      pdf.save(`${safeTitle}_${dateStr}_${timeFormatted}.pdf`);
+
+      // Registra o log da exportação silenciosamente
+      if (session && getWorkspaceConfig) {
+        try {
+          const config = getWorkspaceConfig();
+          // Certifique-se de que a API sabe o título que o usuário digitou
+          fetch('/api/export-logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ map_title: mapTitle, config_json: config })
+          }).catch(err => console.error('Erro ao logar exportação:', err));
+        } catch (logErr) {
+          console.error(logErr);
+        }
+      }
+
     } catch (e) {
       console.error(e);
       alert('Erro ao salvar o PDF.');
@@ -111,6 +147,11 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
   };
 
   const exportToPDF = () => {
+    if (!session) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+    
     if (!mapRef.current) return;
     
     setIsExporting(true);
@@ -876,7 +917,7 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
         onClick={exportToPDF}
         disabled={isExporting}
         className="absolute bottom-[160px] right-[10px] bg-blue-600 hover:bg-blue-500 text-white rounded-full p-3 shadow-lg shadow-blue-900/50 border border-blue-400/50 transition-all z-20 group disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
-        title="Exportar Mapa em PDF (A4 Paisagem)"
+        title={session ? "Exportar Mapa em PDF (A4 Paisagem)" : "Faça login para exportar PDF"}
       >
         {isExporting ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -884,11 +925,13 @@ export default function MapViewer({ activeLayers, basemapStyle, geoData, setGeoD
           <>
             <Printer size={20} />
             <span className="absolute right-full mr-3 bg-slate-800 text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-slate-700 shadow-xl">
-              Exportar para PDF
+              {session ? "Exportar para PDF" : "Login necessário"}
             </span>
           </>
         )}
       </button>
+
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
 
     </div> {/* FECHAMENTO DO map-export-container */}
 

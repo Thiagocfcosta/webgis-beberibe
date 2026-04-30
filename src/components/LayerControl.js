@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Layers, ChevronRight, Map as MapIcon, Database, ChevronDown, Moon, Sun, Globe, Info, Palette, GripVertical, Scissors } from 'lucide-react';
+import { Layers, ChevronRight, Map as MapIcon, Database, ChevronDown, Moon, Sun, Globe, Info, Palette, GripVertical, Scissors, Save, X, Trash2 } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 const stringToColor = (str) => {
   let hash = 0;
@@ -23,12 +24,85 @@ const hslToHex = (h, s, l) => {
   return `#${f(0)}${f(8)}${f(4)}`;
 };
 
-export default function LayerControl({ activeLayers, setActiveLayers, basemapStyle, setBasemapStyle, geoData, setGeoData, symbologyConfig, setSymbologyConfig, clippedLayers, setClippedLayers }) {
+export default function LayerControl({ activeLayers, setActiveLayers, basemapStyle, setBasemapStyle, geoData, setGeoData, symbologyConfig, setSymbologyConfig, clippedLayers, setClippedLayers, clearMap, showToast }) {
   const [layers, setLayers] = useState([]);
   const [isOpen, setIsOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedSettings, setExpandedSettings] = useState(null);
   const [draggedLayer, setDraggedLayer] = useState(null);
+  
+  // -- NOVOS ESTADOS PARA ESTILOS SALVOS --
+  const { data: session } = useSession();
+  const [savedStyles, setSavedStyles] = useState([]);
+  const [isSavingStyle, setIsSavingStyle] = useState(false);
+  const [newStyleName, setNewStyleName] = useState('');
+  const [selectedStyleId, setSelectedStyleId] = useState('');
+
+  // Busca estilos ao montar
+  useEffect(() => {
+    if (session) {
+      fetch('/api/styles')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setSavedStyles(data);
+        })
+        .catch(console.error);
+    }
+  }, [session]);
+
+  const handleSaveStyle = async (layerId) => {
+    if (!newStyleName.trim()) return;
+    const currentStyle = symbologyConfig[layerId] || {};
+    
+    try {
+      const res = await fetch('/api/styles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newStyleName, style_json: currentStyle })
+      });
+      if (res.ok) {
+        setNewStyleName('');
+        setIsSavingStyle(false);
+        // Atualiza a lista
+        const stylesRes = await fetch('/api/styles');
+        const stylesData = await stylesRes.json();
+        setSavedStyles(stylesData);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteStyle = async () => {
+    if (!selectedStyleId) return;
+    if (!confirm('Deseja excluir permanentemente este estilo salvo?')) return;
+    try {
+      const res = await fetch(`/api/styles/${selectedStyleId}`, { method: 'DELETE' });
+      if (res.ok) {
+        const stylesRes = await fetch('/api/styles');
+        const stylesData = await stylesRes.json();
+        setSavedStyles(stylesData);
+        setSelectedStyleId('');
+        if (showToast) showToast('Estilo excluído.');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao excluir estilo.');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const applyStylePreset = (layerId, styleJson) => {
+    // Mescla o estilo salvo no estado atual da camada, forçando re-render
+    setSymbologyConfig(prev => ({
+      ...prev,
+      [layerId]: {
+        ...prev[layerId],
+        ...styleJson
+      }
+    }));
+  };
   
   // Controle de expansão das categorias
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -504,7 +578,16 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
             <div className="p-3 pb-0 shrink-0">
               <div className="text-[10px] text-blue-400 font-bold uppercase tracking-wider mb-2 px-1 flex justify-between items-center">
                 <span>Camadas Selecionadas</span>
-                <span className="text-[9px] text-slate-500">(Arraste para ordenar)</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] text-slate-500 hidden md:inline">(Arraste para ordenar)</span>
+                  <button 
+                    onClick={clearMap} 
+                    className="flex items-center gap-1 text-[9px] bg-red-600/20 text-red-400 hover:bg-red-500/30 px-1.5 py-0.5 rounded transition-colors"
+                    title="Limpar todas as camadas"
+                  >
+                    <X size={10} /> Limpar Mapa
+                  </button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 {activeLayers.map((layerId) => {
@@ -610,8 +693,88 @@ export default function LayerControl({ activeLayers, setActiveLayers, basemapSty
 
                       {/* Painel de Estúdio de Estilização */}
                       {expandedSettings === layer.id && geoData[layer.id] && (
-                        <div className="mx-2 mb-2 p-3 bg-slate-900/80 rounded-lg border border-white/5 shadow-inner flex flex-col gap-3">
+                        <div className="mx-2 mb-2 p-3 bg-slate-900/80 rounded-lg border border-white/5 shadow-inner flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-200">
                           
+                          {/* PRESETS DE ESTILO GLOBAL */}
+                          <div className="space-y-3 border-b border-white/10 pb-4">
+                            <div className="flex justify-between items-center">
+                              <div className="text-[10px] text-blue-400 uppercase tracking-wider font-bold">Meus Estilos</div>
+                              <div className="flex gap-1">
+                                <button 
+                                  onClick={() => {
+                                    setSymbologyConfig(prev => {
+                                      const next = {...prev};
+                                      delete next[layer.id];
+                                      return next;
+                                    });
+                                    if (showToast) showToast('Estilo revertido para o padrão.');
+                                  }}
+                                  className="text-[9px] text-red-400 bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded transition-colors"
+                                  title="Remover estilo customizado desta camada"
+                                >
+                                  Limpar Estilo
+                                </button>
+                                {session && (
+                                  <button 
+                                    onClick={() => setIsSavingStyle(!isSavingStyle)}
+                                    className="text-[9px] text-slate-300 bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded flex items-center gap-1 transition-colors"
+                                  >
+                                    {isSavingStyle ? <X size={10} /> : <Save size={10} />}
+                                    {isSavingStyle ? 'Cancelar' : 'Salvar Estilo'}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {isSavingStyle && (
+                              <div className="flex gap-2 items-center mb-2 animate-in fade-in slide-in-from-top-1">
+                                <input 
+                                  type="text" 
+                                  value={newStyleName}
+                                  onChange={e => setNewStyleName(e.target.value)}
+                                  placeholder="Nome do estilo..."
+                                  className="flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500"
+                                />
+                                <button 
+                                  onClick={() => handleSaveStyle(layer.id)}
+                                  className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-xs transition-colors"
+                                >Salvar</button>
+                              </div>
+                            )}
+
+                            {session ? (
+                              <div className="flex gap-1 items-center">
+                                <select
+                                  value={selectedStyleId}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSelectedStyleId(val);
+                                    if (!val) return;
+                                    const selected = savedStyles.find(s => s.id === parseInt(val));
+                                    if (selected) applyStylePreset(layer.id, selected.style_json);
+                                  }}
+                                  className="w-full bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded px-2 py-1.5 outline-none focus:border-blue-500 cursor-pointer"
+                                >
+                                  <option value="">-- Carregar Estilo Salvo --</option>
+                                  {savedStyles.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                  ))}
+                                </select>
+                                {selectedStyleId && (
+                                  <button 
+                                    onClick={handleDeleteStyle}
+                                    className="p-1.5 bg-red-600/20 text-red-400 hover:bg-red-500/40 rounded transition-colors"
+                                    title="Excluir estilo salvo permanentemente"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-slate-500 italic bg-slate-800/30 p-2 rounded text-center">Faça login para salvar e carregar estilos padronizados.</div>
+                            )}
+                          </div>
+
                           {/* Estilos Globais */}
                           <div className="space-y-3 border-b border-white/10 pb-4">
                             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Estilo Global</div>
