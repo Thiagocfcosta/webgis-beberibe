@@ -378,7 +378,8 @@ export default function SavedMapsDrawer({
   const comunidadeLogs = filteredLogs.filter(l => l.user_role === 'Visualizador');
 
   const favoriteMaps = maps.filter(m => m.is_favorite && m.id !== activeMapId);
-  const teamFavoriteMaps = currentTabSharedMaps.filter(m => m.is_favorite && m.id !== activeMapId);
+  const myTeamFavorites = otherSharedMaps.filter(m => m.is_favorite && m.is_shared === true && m.id !== activeMapId);
+  const myCommunityFavorites = otherSharedMaps.filter(m => m.is_favorite && m.is_shared_community && m.community_status === 'APPROVED' && m.owner_role === 'Visualizador' && m.id !== activeMapId);
 
   const activeMap = maps.find(m => m.id === activeMapId) || sharedMaps.find(m => m.id === activeMapId);
 
@@ -679,7 +680,7 @@ export default function SavedMapsDrawer({
                       >
                         <div className="flex items-center gap-2">
                           <Star size={14} className="text-amber-400 fill-current" />
-                          <span className="text-xs font-bold text-amber-400 tracking-wider">FAVORITOS</span>
+                          <span className="text-xs font-bold text-amber-400 tracking-wider">MEUS PROJETOS FAVORITOS</span>
                         </div>
                         <span className="text-[10px] bg-slate-900 text-amber-500 px-1.5 py-0.5 rounded">{favoriteMaps.length}</span>
                       </div>
@@ -691,22 +692,43 @@ export default function SavedMapsDrawer({
                     </div>
                   )}
 
+                  {/* Seção de Favoritos da Comunidade (Curtidos por mim) */}
+                  {myCommunityFavorites.length > 0 && (
+                    <div className="bg-slate-800/60 rounded-lg border border-emerald-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                      <div 
+                        className="bg-gradient-to-r from-emerald-500/20 to-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors border-b border-emerald-500/20"
+                        onClick={() => toggleFolder('FAVORITOS_COMUNIDADE_PESSOAL')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Globe size={14} className="text-emerald-400" />
+                          <span className="text-xs font-bold text-emerald-400 tracking-wider">MEUS FAVORITOS DA COMUNIDADE</span>
+                        </div>
+                        <span className="text-[10px] bg-slate-900 text-emerald-400 px-1.5 py-0.5 rounded">{myCommunityFavorites.length}</span>
+                      </div>
+                      {isFolderExpanded('FAVORITOS_COMUNIDADE_PESSOAL', true) && (
+                        <div className="p-2 space-y-2 bg-slate-900/30">
+                          {myCommunityFavorites.map(map => renderMapCard(map))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Seção de Favoritos da Equipe (Curtidos por mim) */}
-                  {teamFavoriteMaps.length > 0 && (
+                  {myTeamFavorites.length > 0 && (
                     <div className="bg-slate-800/60 rounded-lg border border-indigo-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
                       <div 
                         className="bg-gradient-to-r from-indigo-500/20 to-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors border-b border-indigo-500/20"
-                        onClick={() => toggleFolder('FAVORITOS_EQUIPE')}
+                        onClick={() => toggleFolder('FAVORITOS_EQUIPE_PESSOAL')}
                       >
                         <div className="flex items-center gap-2">
                           <Users size={14} className="text-indigo-400" />
-                          <span className="text-xs font-bold text-indigo-400 tracking-wider">FAVORITOS DA EQUIPE</span>
+                          <span className="text-xs font-bold text-indigo-400 tracking-wider">MEUS FAVORITOS DA EQUIPE</span>
                         </div>
-                        <span className="text-[10px] bg-slate-900 text-indigo-400 px-1.5 py-0.5 rounded">{teamFavoriteMaps.length}</span>
+                        <span className="text-[10px] bg-slate-900 text-indigo-400 px-1.5 py-0.5 rounded">{myTeamFavorites.length}</span>
                       </div>
-                      {isFolderExpanded('FAVORITOS_EQUIPE', true) && (
+                      {isFolderExpanded('FAVORITOS_EQUIPE_PESSOAL', true) && (
                         <div className="p-2 space-y-2 bg-slate-900/30">
-                          {teamFavoriteMaps.map(map => renderMapCard(map))}
+                          {myTeamFavorites.map(map => renderMapCard(map))}
                         </div>
                       )}
                     </div>
@@ -777,95 +799,19 @@ export default function SavedMapsDrawer({
               </div>
             ) : (
               <>
-                {/* Seção de Favoritos na Equipe */}
-                {filteredSharedMaps.filter(m => m.is_favorite).length > 0 && (
-                  <div className="bg-slate-800/60 rounded-lg border border-amber-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(245,158,11,0.05)]">
-                    <div className="bg-gradient-to-r from-amber-500/20 to-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors border-b border-amber-500/20" onClick={() => toggleFolder('FAVORITOS_EQUIPE_SHARED')}>
-                      <div className="flex items-center gap-2">
-                        <Star size={14} className="text-amber-400 fill-current" />
-                        <span className="text-xs font-bold text-amber-400 tracking-wider">FAVORITOS DA EQUIPE</span>
-                      </div>
-                      <span className="text-[10px] bg-slate-900 text-amber-500 px-1.5 py-0.5 rounded">{filteredSharedMaps.filter(m => m.is_favorite && m.id !== activeMapId).length}</span>
-                    </div>
-                    {isFolderExpanded('FAVORITOS_EQUIPE_SHARED', true) && (
-                    <div className="p-2 space-y-2 bg-slate-900/30">
-                      {filteredSharedMaps.filter(m => m.is_favorite && m.id !== activeMapId).map(map => {
-                        const isActive = activeMapId === map.id;
-                        return (
-                        <div key={map.id} className={`hover:bg-slate-700 p-3 rounded-lg transition-colors cursor-pointer group ${isActive ? 'bg-slate-700 border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-800 border border-slate-700'}`} onClick={() => handleLoad(map)}>
-                          <div className="flex justify-between items-start">
-                            <h4 className="text-sm font-bold text-blue-400 group-hover:text-blue-300 mb-1 flex items-center gap-2">
-                              {map.title}
-                              {map.favorites_count > 0 && (
-                                <span className="flex items-center gap-1 text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded">
-                                  <Star size={10} className="fill-current" /> {map.favorites_count}
-                                </span>
-                              )}
-                            </h4>
-                            <button 
-                              onClick={(e) => handleToggleFavorite(map.id, map.is_favorite, e)}
-                              className={`p-1 rounded transition-colors ${map.is_favorite ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white' : 'bg-slate-700 text-slate-400 hover:text-white'} opacity-0 group-hover:opacity-100`}
-                              title={map.is_favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                            >
-                              <Star size={14} className={map.is_favorite ? "fill-current" : ""} />
-                            </button>
-                          </div>
-                          {map.description && <p className="text-xs text-slate-400 mb-2 line-clamp-2">{map.description}</p>}
-                          
-                          <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between items-center text-[10px] text-slate-500 font-medium">
-                            <span className="truncate max-w-[150px]" title={map.owner_email}>Por: {map.owner_name || map.owner_email}</span>
-                            <span>{new Date(map.created_at).toLocaleDateString('pt-BR')}</span>
-                          </div>
-                        </div>
-                        );
-                      })}
-                    </div>
-                    )}
-                  </div>
-                )}
-
                 {/* Seção de Projetos Promovidos da Comunidade (Visível apenas na aba Equipe) */}
                 {activeTab === 'shared' && communityFavorites.length > 0 && (
                   <div className="bg-slate-800/60 rounded-lg border border-emerald-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
                     <div className="bg-gradient-to-r from-emerald-500/20 to-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors border-b border-emerald-500/20" onClick={() => toggleFolder('COMUNIDADE_PROMOVIDOS')}>
                       <div className="flex items-center gap-2">
                         <Globe size={14} className="text-emerald-400" />
-                        <span className="text-xs font-bold text-emerald-400 tracking-wider">FAVORITOS DA COMUNIDADE</span>
+                        <span className="text-xs font-bold text-emerald-400 tracking-wider">DESTAQUES DA COMUNIDADE</span>
                       </div>
                       <span className="text-[10px] bg-slate-900 text-emerald-500 px-1.5 py-0.5 rounded">{communityFavorites.length}</span>
                     </div>
                     {isFolderExpanded('COMUNIDADE_PROMOVIDOS', true) && (
                     <div className="p-2 space-y-2 bg-slate-900/30">
-                      {communityFavorites.map(map => {
-                        const isActive = activeMapId === map.id;
-                        return (
-                        <div key={map.id} className={`hover:bg-slate-700 p-3 rounded-lg transition-colors cursor-pointer group ${isActive ? 'bg-slate-700 border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-800 border border-slate-700'}`} onClick={() => handleLoad(map)}>
-                          <div className="flex justify-between items-start">
-                            <h4 className="text-sm font-bold text-blue-400 group-hover:text-blue-300 mb-1 flex items-center gap-2">
-                              {map.title}
-                              {map.favorites_count > 0 && (
-                                <span className="flex items-center gap-1 text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded">
-                                  <Star size={10} className="fill-current" /> {map.favorites_count}
-                                </span>
-                              )}
-                            </h4>
-                            <button 
-                              onClick={(e) => handleToggleFavorite(map.id, map.is_favorite, e)}
-                              className={`p-1 rounded transition-colors ${map.is_favorite ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white' : 'bg-slate-700 text-slate-400 hover:text-white'} opacity-0 group-hover:opacity-100`}
-                              title={map.is_favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                            >
-                              <Star size={14} className={map.is_favorite ? "fill-current" : ""} />
-                            </button>
-                          </div>
-                          {map.description && <p className="text-xs text-slate-400 mb-2 line-clamp-2">{map.description}</p>}
-                          
-                          <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between items-center text-[10px] text-slate-500 font-medium">
-                            <span className="truncate max-w-[150px]" title={map.owner_email}>Por: {map.owner_name || map.owner_email}</span>
-                            <span>{new Date(map.created_at).toLocaleDateString('pt-BR')}</span>
-                          </div>
-                        </div>
-                        );
-                      })}
+                      {communityFavorites.map(map => renderMapCard(map))}
                     </div>
                     )}
                   </div>
