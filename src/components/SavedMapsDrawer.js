@@ -20,6 +20,12 @@ export default function SavedMapsDrawer({
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (activeMapId) {
+      setExpandedFolders({}); // Recolhe todas as pastas quando um novo projeto for selecionado
+    }
+  }, [activeMapId]);
   
   const [isCreating, setIsCreating] = useState(false);
   const [title, setTitle] = useState('');
@@ -274,7 +280,14 @@ export default function SavedMapsDrawer({
   };
 
   const toggleFolder = (folder) => {
-    setExpandedFolders(prev => ({ ...prev, [folder]: prev[folder] === false ? true : false })); // Default is true usually, but we check truthiness
+    setExpandedFolders(prev => ({ ...prev, [folder]: prev[folder] === false ? true : false })); 
+  };
+
+  const isFolderExpanded = (folder, isFavorite = false) => {
+    if (expandedFolders[folder] !== undefined) return expandedFolders[folder];
+    if (activeMapId) return false; // Se tiver projeto selecionado, padrão é tudo recolhido
+    if (isFavorite) return true; // Favoritos expandido por padrão se não houver projeto
+    return false; // Pastas normais recolhidas por padrão
   };
 
   // Agrupar mapas por pasta garantindo que todas as pastas independentes apareçam
@@ -284,6 +297,7 @@ export default function SavedMapsDrawer({
   }, {});
 
   maps.forEach(map => {
+    if (map.id === activeMapId) return; // Exclui mapa ativo
     const f = map.folder_name || 'Raiz';
     if (!groupedMaps[f]) groupedMaps[f] = [];
     groupedMaps[f].push(map);
@@ -295,6 +309,7 @@ export default function SavedMapsDrawer({
   const filteredSharedMaps = teamSharedMaps.filter(map => teamFilterEmail === 'Todos' || map.owner_name === teamFilterEmail);
 
   const groupedSharedMaps = filteredSharedMaps.reduce((acc, map) => {
+    if (map.id === activeMapId) return acc; // Exclui mapa ativo
     const f = map.folder_name || 'Raiz';
     if (!acc[f]) acc[f] = [];
     acc[f].push(map);
@@ -314,11 +329,13 @@ export default function SavedMapsDrawer({
     return matchesSearch && matchesRole;
   });
 
-  const favoriteMaps = maps.filter(m => m.is_favorite);
-  const teamFavoriteMaps = teamSharedMaps.filter(m => m.is_favorite);
+  const favoriteMaps = maps.filter(m => m.is_favorite && m.id !== activeMapId);
+  const teamFavoriteMaps = teamSharedMaps.filter(m => m.is_favorite && m.id !== activeMapId);
 
-  const renderMapCard = (map) => {
-    const isActive = activeMapId === map.id;
+  const activeMap = maps.find(m => m.id === activeMapId) || sharedMaps.find(m => m.id === activeMapId);
+
+  const renderMapCard = (map, hideBorder = false) => {
+    const isActive = activeMapId === map.id && !hideBorder;
     return (
     <div key={map.id} className={`relative hover:bg-slate-700 p-3 rounded-lg transition-colors cursor-pointer group ${isActive ? 'bg-slate-700 border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-800 border border-slate-700'}`} onClick={() => handleLoad(map)}>
       <div className="flex justify-between items-start">
@@ -443,6 +460,24 @@ export default function SavedMapsDrawer({
 
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-900/50">
         
+        {/* PROJETO SELECIONADO GLOBAL */}
+        {activeMap && (
+          <div className="mb-6 relative">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg blur opacity-30"></div>
+            <div className="relative bg-slate-800/90 rounded-lg border border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.2)] overflow-hidden">
+              <div className="bg-blue-600/20 px-3 py-2 flex items-center justify-between border-b border-blue-500/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
+                  <span className="text-xs font-bold text-blue-400 tracking-wider">PROJETO SELECIONADO</span>
+                </div>
+              </div>
+              <div className="p-2">
+                {renderMapCard(activeMap, true)}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ABA: PROJETOS SALVOS */}
         {activeTab === 'projects' && (
           <>
@@ -535,32 +570,48 @@ export default function SavedMapsDrawer({
                   {/* Seção de Favoritos (Meus Projetos) */}
                   {favoriteMaps.length > 0 && (
                     <div className="bg-slate-800/60 rounded-lg border border-amber-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(245,158,11,0.05)]">
-                      <div className="bg-gradient-to-r from-amber-500/20 to-slate-800 px-3 py-2 flex items-center gap-2 border-b border-amber-500/20">
-                        <Star size={14} className="text-amber-400 fill-current" />
-                        <span className="text-xs font-bold text-amber-400 tracking-wider">FAVORITOS</span>
+                      <div 
+                        className="bg-gradient-to-r from-amber-500/20 to-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors border-b border-amber-500/20"
+                        onClick={() => toggleFolder('FAVORITOS')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Star size={14} className="text-amber-400 fill-current" />
+                          <span className="text-xs font-bold text-amber-400 tracking-wider">FAVORITOS</span>
+                        </div>
+                        <span className="text-[10px] bg-slate-900 text-amber-500 px-1.5 py-0.5 rounded">{favoriteMaps.length}</span>
                       </div>
-                      <div className="p-2 space-y-2 bg-slate-900/30">
-                        {favoriteMaps.map(map => renderMapCard(map))}
-                      </div>
+                      {isFolderExpanded('FAVORITOS', true) && (
+                        <div className="p-2 space-y-2 bg-slate-900/30">
+                          {favoriteMaps.map(map => renderMapCard(map))}
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* Seção de Favoritos da Equipe (Curtidos por mim) */}
                   {teamFavoriteMaps.length > 0 && (
                     <div className="bg-slate-800/60 rounded-lg border border-indigo-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
-                      <div className="bg-gradient-to-r from-indigo-500/20 to-slate-800 px-3 py-2 flex items-center gap-2 border-b border-indigo-500/20">
-                        <Users size={14} className="text-indigo-400" />
-                        <span className="text-xs font-bold text-indigo-400 tracking-wider">FAVORITOS DA EQUIPE</span>
+                      <div 
+                        className="bg-gradient-to-r from-indigo-500/20 to-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors border-b border-indigo-500/20"
+                        onClick={() => toggleFolder('FAVORITOS_EQUIPE')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Users size={14} className="text-indigo-400" />
+                          <span className="text-xs font-bold text-indigo-400 tracking-wider">FAVORITOS DA EQUIPE</span>
+                        </div>
+                        <span className="text-[10px] bg-slate-900 text-indigo-400 px-1.5 py-0.5 rounded">{teamFavoriteMaps.length}</span>
                       </div>
-                      <div className="p-2 space-y-2 bg-slate-900/30">
-                        {teamFavoriteMaps.map(map => renderMapCard(map))}
-                      </div>
+                      {isFolderExpanded('FAVORITOS_EQUIPE', true) && (
+                        <div className="p-2 space-y-2 bg-slate-900/30">
+                          {teamFavoriteMaps.map(map => renderMapCard(map))}
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* Pastas Normais */}
                   {Object.keys(groupedMaps).sort().map(folder => {
-                    const isExpanded = expandedFolders[folder] !== false; // Padrão aberto
+                    const isExpanded = isFolderExpanded(folder);
                     return (
                       <div key={folder} className="bg-slate-800/40 rounded-lg border border-slate-700 overflow-hidden mb-2">
                         <div 
@@ -624,12 +675,16 @@ export default function SavedMapsDrawer({
                 {/* Seção de Favoritos na Equipe */}
                 {filteredSharedMaps.filter(m => m.is_favorite).length > 0 && (
                   <div className="bg-slate-800/60 rounded-lg border border-amber-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(245,158,11,0.05)]">
-                    <div className="bg-gradient-to-r from-amber-500/20 to-slate-800 px-3 py-2 flex items-center gap-2 border-b border-amber-500/20">
-                      <Star size={14} className="text-amber-400 fill-current" />
-                      <span className="text-xs font-bold text-amber-400 tracking-wider">FAVORITOS DA EQUIPE</span>
+                    <div className="bg-gradient-to-r from-amber-500/20 to-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors border-b border-amber-500/20" onClick={() => toggleFolder('FAVORITOS_EQUIPE_SHARED')}>
+                      <div className="flex items-center gap-2">
+                        <Star size={14} className="text-amber-400 fill-current" />
+                        <span className="text-xs font-bold text-amber-400 tracking-wider">FAVORITOS DA EQUIPE</span>
+                      </div>
+                      <span className="text-[10px] bg-slate-900 text-amber-500 px-1.5 py-0.5 rounded">{filteredSharedMaps.filter(m => m.is_favorite && m.id !== activeMapId).length}</span>
                     </div>
+                    {isFolderExpanded('FAVORITOS_EQUIPE_SHARED', true) && (
                     <div className="p-2 space-y-2 bg-slate-900/30">
-                      {filteredSharedMaps.filter(m => m.is_favorite).map(map => {
+                      {filteredSharedMaps.filter(m => m.is_favorite && m.id !== activeMapId).map(map => {
                         const isActive = activeMapId === map.id;
                         return (
                         <div key={map.id} className={`hover:bg-slate-700 p-3 rounded-lg transition-colors cursor-pointer group ${isActive ? 'bg-slate-700 border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-800 border border-slate-700'}`} onClick={() => handleLoad(map)}>
@@ -664,9 +719,9 @@ export default function SavedMapsDrawer({
                 )}
 
                 {Object.keys(groupedSharedMaps).sort().map(folder => {
-                  const isExpanded = expandedFolders[`shared_${folder}`] !== false; // Padrão aberto
+                  const isExpanded = isFolderExpanded(`shared_${folder}`);
                   return (
-                    <div key={`shared_${folder}`} className="bg-slate-800/40 rounded-lg border border-slate-700 overflow-hidden">
+                    <div key={`shared_${folder}`} className="bg-slate-800/40 rounded-lg border border-slate-700 overflow-hidden mb-2">
                       <div 
                         className="bg-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700 transition-colors"
                         onClick={() => toggleFolder(`shared_${folder}`)}
