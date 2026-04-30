@@ -715,6 +715,7 @@ export default function SavedMapsDrawer({
                         );
                       })}
                     </div>
+                    )}
                   </div>
                 )}
 
