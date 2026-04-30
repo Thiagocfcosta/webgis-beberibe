@@ -105,6 +105,15 @@ export default function Home() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const clearWorkspace = () => {
+    setActiveMapId(null);
+    setActiveLayers([]);
+    setClippedLayers({});
+    setMapTitle('Análise Territorial - Beberibe');
+    setMapDesc('Insira uma descrição, data ou nota técnica sobre o mapa aqui...');
+    showToast('Workspace limpo com sucesso.');
+  };
+
   const clearMap = () => {
     setActiveLayers([]);
     showToast('Camadas removidas da tela.');
@@ -163,6 +172,7 @@ export default function Home() {
         loadWorkspace={loadWorkspace}
         mergeWorkspace={mergeWorkspace}
         clearMap={clearMap}
+        clearWorkspace={clearWorkspace}
         showToast={showToast}
         activeMapId={activeMapId}
       />

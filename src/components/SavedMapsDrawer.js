@@ -10,6 +10,7 @@ export default function SavedMapsDrawer({
   getWorkspaceConfig, 
   loadWorkspace,
   mergeWorkspace,
+  clearWorkspace,
   showToast,
   activeMapId
 }) {
@@ -491,6 +492,13 @@ export default function SavedMapsDrawer({
                   <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
                   <span className="text-xs font-bold text-blue-400 tracking-wider">PROJETO SELECIONADO</span>
                 </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); clearWorkspace(); }}
+                  className="text-[10px] bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-2 py-0.5 rounded transition-colors"
+                  title="Limpar workspace atual"
+                >
+                  Limpar
+                </button>
               </div>
               <div className="p-2">
                 {renderMapCard(activeMap, true)}
