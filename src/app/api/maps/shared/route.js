@@ -15,22 +15,23 @@ export async function GET(req) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    // Se for visualizador, ele não pode ver projetos da "Equipe", apenas projetos da "Comunidade" (onde criador é Visualizador)
-    let roleFilter = '';
+    // Se for visualizador, ele NÃO VÊ mapas da equipe, apenas da comunidade aprovada
+    let whereClause = `s.is_shared = true OR (s.is_shared_community = true AND s.community_status = 'APPROVED')`;
     if (session.user.role === 'Visualizador') {
-      roleFilter = "AND u.role = 'Visualizador'";
+      whereClause = `s.is_shared_community = true AND s.community_status = 'APPROVED'`;
     }
 
-    // Retorna todos os projetos onde is_shared = true, incluindo o email e role de quem criou
+    // Retorna todos os projetos que atendem ao critério, incluindo colunas da comunidade
     const res = await pool.query(`
       SELECT 
-        s.id, s.title, s.description, s.config_json, s.created_at, s.folder_name, s.is_shared,
+        s.id, s.title, s.description, s.config_json, s.created_at, s.folder_name, 
+        s.is_shared, s.is_shared_community, s.community_status,
         u.email as owner_email, u.name as owner_name, u.role as owner_role,
         EXISTS (SELECT 1 FROM map_favorites mf WHERE mf.map_id = s.id AND mf.user_id = $1) as is_favorite,
         (SELECT COUNT(*) FROM map_favorites mf WHERE mf.map_id = s.id)::int as favorites_count
       FROM saved_maps s
       JOIN users u ON s.user_id = u.id
-      WHERE s.is_shared = true ${roleFilter}
+      WHERE ${whereClause}
       ORDER BY s.created_at DESC
     `, [session.user.id]);
 

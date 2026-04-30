@@ -17,7 +17,7 @@ export async function PATCH(req, { params }) {
 
     const { id } = await params;
     const body = await req.json();
-    const { is_shared } = body;
+    const { is_shared, is_shared_community } = body;
 
     // Verificar se o mapa existe e pertence ao usuário (ou se é admin)
     const checkRes = await pool.query('SELECT user_id FROM saved_maps WHERE id = $1', [id]);
@@ -30,7 +30,32 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: 'Não autorizado a alterar este projeto' }, { status: 403 });
     }
 
-    await pool.query('UPDATE saved_maps SET is_shared = $1 WHERE id = $2', [is_shared, id]);
+    let updateFields = [];
+    let queryParams = [];
+    let idx = 1;
+
+    if (is_shared !== undefined) {
+      updateFields.push(`is_shared = $${idx++}`);
+      queryParams.push(is_shared);
+    }
+
+    if (is_shared_community !== undefined) {
+      updateFields.push(`is_shared_community = $${idx++}`);
+      queryParams.push(is_shared_community);
+      
+      if (is_shared_community === true) {
+        if (session.user.role === 'Visualizador') {
+          updateFields.push(`community_status = 'APPROVED'`);
+        } else {
+          updateFields.push(`community_status = 'PENDING'`);
+        }
+      }
+    }
+
+    if (updateFields.length > 0) {
+      queryParams.push(id);
+      await pool.query(`UPDATE saved_maps SET ${updateFields.join(', ')} WHERE id = $${idx}`, queryParams);
+    }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

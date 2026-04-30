@@ -167,6 +167,24 @@ export default function AdminUsersModal({ isOpen, onClose }) {
     }
   };
 
+  const handleApproveCommunity = async (id, status) => {
+    try {
+      const res = await fetch(`/api/maps/${id}/approve-community`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        setProjects(prev => prev.map(p => p.id === id ? { ...p, community_status: status } : p));
+      } else {
+        alert('Erro ao alterar status de aprovação.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Erro de conexão ao aprovar.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
@@ -191,6 +209,12 @@ export default function AdminUsersModal({ isOpen, onClose }) {
                   className={`text-xs font-medium pb-1 border-b-2 transition-colors ${mainTab === 'projects' ? 'border-blue-400 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
                 >
                   PROJETOS
+                </button>
+                <button 
+                  onClick={() => { setMainTab('approvals'); fetchProjects(); }}
+                  className={`text-xs font-medium pb-1 border-b-2 transition-colors ${mainTab === 'approvals' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+                >
+                  APROVAÇÕES
                 </button>
               </div>
             </div>
@@ -450,6 +474,62 @@ export default function AdminUsersModal({ isOpen, onClose }) {
                           </td>
                         </tr>
                     ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
+          {mainTab === 'approvals' && (
+            <div className="bg-slate-800 border border-amber-500/30 rounded-xl overflow-hidden shadow-lg shadow-amber-900/10">
+              {loading && projects.length === 0 ? (
+                <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-amber-500" size={32} /></div>
+              ) : (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900/80 border-b border-slate-700 text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+                      <th className="px-6 py-4">Projeto / Equipe</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4 text-center">Data Solicitação</th>
+                      <th className="px-6 py-4 text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {projects.filter(p => p.is_shared_community && p.community_status === 'PENDING').length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="px-6 py-10 text-center text-sm text-slate-500">
+                          Não há projetos aguardando aprovação para a comunidade.
+                        </td>
+                      </tr>
+                    ) : projects.filter(p => p.is_shared_community && p.community_status === 'PENDING').map(project => (
+                        <tr key={project.id} className="hover:bg-slate-700/20 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-amber-400 text-sm mb-1">{project.title}</div>
+                            <div className="text-xs text-slate-400">Solicitado por: {project.owner_name || project.owner_email}</div>
+                          </td>
+                          <td className="px-6 py-4 text-xs text-amber-500 font-bold">
+                            PENDENTE
+                          </td>
+                          <td className="px-6 py-4 text-xs text-slate-400 text-center">
+                            {new Date(project.created_at).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="px-6 py-4 text-right flex justify-end gap-2">
+                            <button 
+                              onClick={() => handleApproveCommunity(project.id, 'APPROVED')}
+                              className="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded transition-colors text-xs font-bold"
+                            >
+                              Aprovar
+                            </button>
+                            <button 
+                              onClick={() => handleApproveCommunity(project.id, 'REJECTED')}
+                              className="bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded transition-colors text-xs font-bold"
+                            >
+                              Rejeitar
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    }
                   </tbody>
                 </table>
               )}

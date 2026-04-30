@@ -120,7 +120,34 @@ export default function SavedMapsDrawer({
       });
       if (res.ok) {
         setMaps(prev => prev.map(m => m.id === id ? { ...m, is_shared: !currentStatus } : m));
-        if (showToast) showToast(!currentStatus ? 'Projeto compartilhado com a equipe.' : 'Projeto tornado privado.');
+        setSharedMaps(prev => prev.map(m => m.id === id ? { ...m, is_shared: !currentStatus } : m));
+        if (showToast) showToast(!currentStatus ? 'Projeto compartilhado com a equipe.' : 'Projeto privado da equipe.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleCommunityShare = async (id, currentStatus, e) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/workspaces/${id}/share`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_shared_community: !currentStatus })
+      });
+      if (res.ok) {
+        // Atualiza UI com base em se precisa de aprovação ou não
+        const pendingStatus = session?.user?.role !== 'Visualizador' ? 'PENDING' : 'APPROVED';
+        setMaps(prev => prev.map(m => m.id === id ? { ...m, is_shared_community: !currentStatus, community_status: !currentStatus ? pendingStatus : m.community_status } : m));
+        
+        if (showToast) {
+          if (!currentStatus) {
+            showToast(pendingStatus === 'PENDING' ? 'Enviado para aprovação do Administrador.' : 'Projeto compartilhado na Comunidade.');
+          } else {
+            showToast('Removido da Comunidade.');
+          }
+        }
       }
     } catch (err) {
       console.error(err);
@@ -318,12 +345,15 @@ export default function SavedMapsDrawer({
   const otherSharedMaps = sharedMaps.filter(map => !maps.some(myMap => myMap.id === map.id));
 
   const currentTabSharedMaps = activeTab === 'community' 
-    ? otherSharedMaps.filter(m => m.owner_role === 'Visualizador')
-    : otherSharedMaps.filter(m => m.owner_role !== 'Visualizador');
+    ? otherSharedMaps.filter(m => m.is_shared_community && m.community_status === 'APPROVED' && m.owner_role === 'Visualizador')
+    : otherSharedMaps.filter(m => m.is_shared === true);
 
   const filteredSharedMaps = currentTabSharedMaps.filter(map => teamFilterEmail === 'Todos' || map.owner_name === teamFilterEmail);
 
-  const groupedSharedMaps = filteredSharedMaps.reduce((acc, map) => {
+  const teamNormalMaps = activeTab === 'shared' ? filteredSharedMaps.filter(m => m.owner_role !== 'Visualizador') : filteredSharedMaps;
+  const communityFavorites = activeTab === 'shared' ? filteredSharedMaps.filter(m => m.owner_role === 'Visualizador') : [];
+
+  const groupedSharedMaps = teamNormalMaps.reduce((acc, map) => {
     if (map.id === activeMapId) return acc; // Exclui mapa ativo
     const f = map.folder_name || 'Raiz';
     if (!acc[f]) acc[f] = [];
@@ -375,7 +405,8 @@ export default function SavedMapsDrawer({
       <div className="flex justify-between items-start">
         <h4 className="text-sm font-bold text-blue-400 group-hover:text-blue-300 mb-1 pr-24 flex items-center gap-2">
           {map.title}
-          {map.is_shared && <Globe size={12} className="text-blue-500" title="Compartilhado com a equipe" />}
+          {map.is_shared && <Users size={12} className="text-blue-500" title="Compartilhado com a equipe" />}
+          {map.is_shared_community && map.community_status === 'APPROVED' && <Globe size={12} className="text-emerald-500" title="Compartilhado com a comunidade" />}
           {map.favorites_count > 0 && (
             <span className="flex items-center gap-1 text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded ml-1">
               <Star size={10} className="fill-current" /> {map.favorites_count}
@@ -390,12 +421,22 @@ export default function SavedMapsDrawer({
           >
             <Star size={14} className={map.is_favorite ? "fill-current" : ""} />
           </button>
+          {(session?.user?.role === 'admin' || session?.user?.role === 'Administrador' || session?.user?.role === 'Analista') && (
+            <button 
+              onClick={(e) => handleToggleShare(map.id, map.is_shared, e)}
+              className={`p-1 rounded transition-colors ${map.is_shared ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
+              title={map.is_shared ? "Remover da equipe" : "Compartilhar com a equipe"}
+            >
+              <Users size={14} />
+            </button>
+          )}
           <button 
-            onClick={(e) => handleToggleShare(map.id, map.is_shared, e)}
-            className={`p-1 rounded transition-colors ${map.is_shared ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
-            title={map.is_shared ? "Remover do compartilhamento" : "Compartilhar com a equipe"}
+            onClick={(e) => handleToggleCommunityShare(map.id, map.is_shared_community, e)}
+            className={`p-1 rounded transition-colors ${map.is_shared_community ? (map.community_status === 'PENDING' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white') : 'bg-slate-700 text-slate-400 hover:text-white'}`}
+            title={map.is_shared_community ? (map.community_status === 'PENDING' ? "Aprovação pendente" : "Remover da comunidade") : "Compartilhar com a comunidade"}
+            disabled={map.community_status === 'PENDING'}
           >
-            <Globe size={14} />
+            {map.community_status === 'PENDING' ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />}
           </button>
           <button 
             onClick={(e) => handleToggleHistory(map.id, e)}
@@ -749,6 +790,53 @@ export default function SavedMapsDrawer({
                     {isFolderExpanded('FAVORITOS_EQUIPE_SHARED', true) && (
                     <div className="p-2 space-y-2 bg-slate-900/30">
                       {filteredSharedMaps.filter(m => m.is_favorite && m.id !== activeMapId).map(map => {
+                        const isActive = activeMapId === map.id;
+                        return (
+                        <div key={map.id} className={`hover:bg-slate-700 p-3 rounded-lg transition-colors cursor-pointer group ${isActive ? 'bg-slate-700 border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-800 border border-slate-700'}`} onClick={() => handleLoad(map)}>
+                          <div className="flex justify-between items-start">
+                            <h4 className="text-sm font-bold text-blue-400 group-hover:text-blue-300 mb-1 flex items-center gap-2">
+                              {map.title}
+                              {map.favorites_count > 0 && (
+                                <span className="flex items-center gap-1 text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded">
+                                  <Star size={10} className="fill-current" /> {map.favorites_count}
+                                </span>
+                              )}
+                            </h4>
+                            <button 
+                              onClick={(e) => handleToggleFavorite(map.id, map.is_favorite, e)}
+                              className={`p-1 rounded transition-colors ${map.is_favorite ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white' : 'bg-slate-700 text-slate-400 hover:text-white'} opacity-0 group-hover:opacity-100`}
+                              title={map.is_favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                            >
+                              <Star size={14} className={map.is_favorite ? "fill-current" : ""} />
+                            </button>
+                          </div>
+                          {map.description && <p className="text-xs text-slate-400 mb-2 line-clamp-2">{map.description}</p>}
+                          
+                          <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between items-center text-[10px] text-slate-500 font-medium">
+                            <span className="truncate max-w-[150px]" title={map.owner_email}>Por: {map.owner_name || map.owner_email}</span>
+                            <span>{new Date(map.created_at).toLocaleDateString('pt-BR')}</span>
+                          </div>
+                        </div>
+                        );
+                      })}
+                    </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Seção de Projetos Promovidos da Comunidade (Visível apenas na aba Equipe) */}
+                {activeTab === 'shared' && communityFavorites.length > 0 && (
+                  <div className="bg-slate-800/60 rounded-lg border border-emerald-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                    <div className="bg-gradient-to-r from-emerald-500/20 to-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors border-b border-emerald-500/20" onClick={() => toggleFolder('COMUNIDADE_PROMOVIDOS')}>
+                      <div className="flex items-center gap-2">
+                        <Globe size={14} className="text-emerald-400" />
+                        <span className="text-xs font-bold text-emerald-400 tracking-wider">FAVORITOS DA COMUNIDADE</span>
+                      </div>
+                      <span className="text-[10px] bg-slate-900 text-emerald-500 px-1.5 py-0.5 rounded">{communityFavorites.length}</span>
+                    </div>
+                    {isFolderExpanded('COMUNIDADE_PROMOVIDOS', true) && (
+                    <div className="p-2 space-y-2 bg-slate-900/30">
+                      {communityFavorites.map(map => {
                         const isActive = activeMapId === map.id;
                         return (
                         <div key={map.id} className={`hover:bg-slate-700 p-3 rounded-lg transition-colors cursor-pointer group ${isActive ? 'bg-slate-700 border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-800 border border-slate-700'}`} onClick={() => handleLoad(map)}>
