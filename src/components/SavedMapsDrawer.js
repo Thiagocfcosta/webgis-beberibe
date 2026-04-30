@@ -29,6 +29,8 @@ export default function SavedMapsDrawer({
   const [newFolderName, setNewFolderName] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   
+  const [teamFilterEmail, setTeamFilterEmail] = useState('Todos');
+  
   // UI States
   const [expandedFolders, setExpandedFolders] = useState({});
   const [auditSearch, setAuditSearch] = useState('');
@@ -276,12 +278,17 @@ export default function SavedMapsDrawer({
     groupedMaps[f].push(map);
   });
 
-  const groupedSharedMaps = sharedMaps.reduce((acc, map) => {
+  const filteredSharedMaps = sharedMaps.filter(map => teamFilterEmail === 'Todos' || map.owner_email === teamFilterEmail);
+
+  const groupedSharedMaps = filteredSharedMaps.reduce((acc, map) => {
     const f = map.folder_name || 'Raiz';
     if (!acc[f]) acc[f] = [];
     acc[f].push(map);
     return acc;
   }, {});
+
+  // Extrair usuários únicos da equipe para o filtro
+  const teamUsers = [...new Set(sharedMaps.map(m => m.owner_email))].filter(Boolean).sort();
 
   // Filtrar logs
   const filteredLogs = exportLogs.filter(log => {
@@ -548,18 +555,33 @@ export default function SavedMapsDrawer({
         {/* ABA: COMPARTILHADOS COM A EQUIPE */}
         {activeTab === 'shared' && (
           <div className="space-y-4">
-            <div className="bg-blue-900/20 border border-blue-500/30 p-3 rounded-lg mb-4 flex items-center gap-3">
+            <div className="bg-blue-900/20 border border-blue-500/30 p-3 rounded-lg flex items-center gap-3">
               <Users size={24} className="text-blue-400 flex-shrink-0" />
               <p className="text-xs text-blue-200 leading-relaxed">
                 Estes projetos foram compartilhados por outros analistas da equipe. Clique para carregar o mapa no seu workspace atual.
               </p>
             </div>
 
+            {teamUsers.length > 0 && (
+              <div className="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Filtrar por Analista</label>
+                <select 
+                  value={teamFilterEmail} onChange={e => setTeamFilterEmail(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded px-2 py-1.5 outline-none focus:border-blue-500"
+                >
+                  <option value="Todos">Todos os analistas</option>
+                  {teamUsers.map(email => (
+                    <option key={email} value={email}>{email}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {loading ? (
               <div className="flex justify-center p-6"><Loader2 className="animate-spin text-slate-500" /></div>
-            ) : sharedMaps.length === 0 ? (
+            ) : filteredSharedMaps.length === 0 ? (
               <div className="text-xs text-slate-500 italic bg-slate-800/30 p-4 rounded-lg text-center">
-                Nenhum projeto foi compartilhado pela equipe ainda.
+                {teamFilterEmail === 'Todos' ? 'Nenhum projeto foi compartilhado pela equipe ainda.' : `Nenhum projeto encontrado para ${teamFilterEmail}.`}
               </div>
             ) : (
               Object.keys(groupedSharedMaps).sort().map(folder => {
