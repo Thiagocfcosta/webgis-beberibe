@@ -278,7 +278,7 @@ export default function SavedMapsDrawer({
     groupedMaps[f].push(map);
   });
 
-  const filteredSharedMaps = sharedMaps.filter(map => teamFilterEmail === 'Todos' || map.owner_email === teamFilterEmail);
+  const filteredSharedMaps = sharedMaps.filter(map => teamFilterEmail === 'Todos' || map.owner_name === teamFilterEmail);
 
   const groupedSharedMaps = filteredSharedMaps.reduce((acc, map) => {
     const f = map.folder_name || 'Raiz';
@@ -288,7 +288,7 @@ export default function SavedMapsDrawer({
   }, {});
 
   // Extrair usuários únicos da equipe para o filtro
-  const teamUsers = [...new Set(sharedMaps.map(m => m.owner_email))].filter(Boolean).sort();
+  const teamUsers = [...new Set(sharedMaps.map(m => m.owner_name || m.owner_email))].filter(Boolean).sort();
 
   // Filtrar logs
   const filteredLogs = exportLogs.filter(log => {
@@ -607,7 +607,7 @@ export default function SavedMapsDrawer({
                             {map.description && <p className="text-xs text-slate-400 mb-2 line-clamp-2">{map.description}</p>}
                             
                             <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between items-center text-[10px] text-slate-500 font-medium">
-                              <span className="truncate max-w-[150px]" title={map.owner_email}>Por: {map.owner_email}</span>
+                              <span className="truncate max-w-[150px]" title={map.owner_email}>Por: {map.owner_name || map.owner_email}</span>
                               <span>{new Date(map.created_at).toLocaleDateString('pt-BR')}</span>
                             </div>
                           </div>
