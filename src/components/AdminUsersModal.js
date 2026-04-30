@@ -7,8 +7,12 @@ import { useSession } from 'next-auth/react';
 export default function AdminUsersModal({ isOpen, onClose }) {
   const { data: session } = useSession();
   const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Tab Principal (Usuários vs Projetos)
+  const [mainTab, setMainTab] = useState('users');
   
   // States para criação de usuário
   const [isCreating, setIsCreating] = useState(false);
@@ -27,8 +31,11 @@ export default function AdminUsersModal({ isOpen, onClose }) {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (isOpen) fetchUsers();
-  }, [isOpen]);
+    if (isOpen) {
+      if (mainTab === 'users') fetchUsers();
+      else if (mainTab === 'projects') fetchProjects();
+    }
+  }, [isOpen, mainTab]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -38,6 +45,21 @@ export default function AdminUsersModal({ isOpen, onClose }) {
       if (!res.ok) throw new Error('Não autorizado');
       const data = await res.json();
       setUsers(data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProjects = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin/maps');
+      if (!res.ok) throw new Error('Não autorizado');
+      const data = await res.json();
+      setProjects(data);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -120,6 +142,31 @@ export default function AdminUsersModal({ isOpen, onClose }) {
     return matchesSearch && matchesTab;
   });
 
+  const filteredProjects = projects.filter(p => {
+    const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (p.owner_name && p.owner_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (p.owner_email && p.owner_email.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesSearch;
+  });
+
+  const toggleProjectShare = async (id, isShared) => {
+    try {
+      const res = await fetch(`/api/workspaces/${id}/share`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_shared: !isShared })
+      });
+      if (res.ok) {
+        setProjects(prev => prev.map(p => p.id === id ? { ...p, is_shared: !isShared } : p));
+      } else {
+        alert('Erro ao alterar status de compartilhamento.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Erro de conexão ao alterar status.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
@@ -132,7 +179,20 @@ export default function AdminUsersModal({ isOpen, onClose }) {
             </div>
             <div>
               <h2 className="text-lg font-bold text-white tracking-wide">Controle de Acessos</h2>
-              <p className="text-xs text-slate-400">Gerenciamento de Contas e Permissões do WebGIS</p>
+              <div className="flex gap-4 mt-2">
+                <button 
+                  onClick={() => setMainTab('users')}
+                  className={`text-xs font-medium pb-1 border-b-2 transition-colors ${mainTab === 'users' ? 'border-blue-400 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+                >
+                  USUÁRIOS
+                </button>
+                <button 
+                  onClick={() => setMainTab('projects')}
+                  className={`text-xs font-medium pb-1 border-b-2 transition-colors ${mainTab === 'projects' ? 'border-blue-400 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-300'}`}
+                >
+                  PROJETOS
+                </button>
+              </div>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 p-2 rounded-lg transition-colors">
@@ -147,8 +207,10 @@ export default function AdminUsersModal({ isOpen, onClose }) {
           {/* Top Actions & Filters */}
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex justify-between items-center">
-              <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Usuários Cadastrados</h3>
-              {!isCreating && (
+              <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">
+                {mainTab === 'users' ? 'Usuários Cadastrados' : 'Projetos de Usuários'}
+              </h3>
+              {mainTab === 'users' && !isCreating && (
                 <button 
                   onClick={() => setIsCreating(true)}
                   className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-900/50"
@@ -162,7 +224,7 @@ export default function AdminUsersModal({ isOpen, onClose }) {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-800/50 p-2 rounded-xl border border-slate-700/50">
               {/* Tabs */}
               <div className="flex gap-1 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
-                {['Todos', 'Administrador', 'Analista', 'Visualizador'].map(tab => (
+                {mainTab === 'users' && ['Todos', 'Administrador', 'Analista', 'Visualizador'].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -171,6 +233,11 @@ export default function AdminUsersModal({ isOpen, onClose }) {
                     {tab}
                   </button>
                 ))}
+                {mainTab === 'projects' && (
+                  <div className="px-4 py-1.5 rounded-lg text-xs font-medium text-slate-400">
+                    Todos os Projetos
+                  </div>
+                )}
               </div>
 
               {/* Busca */}
@@ -182,12 +249,15 @@ export default function AdminUsersModal({ isOpen, onClose }) {
                   type="text" 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por nome ou email..."
+                  placeholder={mainTab === 'users' ? "Buscar por nome ou email..." : "Buscar projeto ou autor..."}
                   className="w-full md:w-64 bg-slate-900 border border-slate-700 text-white text-xs rounded-lg pl-9 pr-3 py-2 outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
             </div>
           </div>
+
+          {mainTab === 'users' && (
+            <>
 
           {/* Formulário de Criação */}
           {isCreating && (
@@ -331,6 +401,61 @@ export default function AdminUsersModal({ isOpen, onClose }) {
               </table>
             )}
           </div>
+          </>
+          )}
+
+          {mainTab === 'projects' && (
+            <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-lg">
+              {loading && projects.length === 0 ? (
+                <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-blue-500" size={32} /></div>
+              ) : (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900/80 border-b border-slate-700 text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+                      <th className="px-6 py-4">Projeto / Criador</th>
+                      <th className="px-6 py-4">Pasta</th>
+                      <th className="px-6 py-4 text-center">Data</th>
+                      <th className="px-6 py-4 text-right">Compartilhado com Equipe?</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {filteredProjects.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="px-6 py-10 text-center text-sm text-slate-500">
+                          Nenhum projeto encontrado para a busca "{searchTerm}".
+                        </td>
+                      </tr>
+                    ) : filteredProjects.map(project => (
+                        <tr key={project.id} className="hover:bg-slate-700/20 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-blue-400 text-sm mb-1">{project.title}</div>
+                            <div className="text-xs text-slate-400">Criado por: {project.owner_name || project.owner_email}</div>
+                          </td>
+                          <td className="px-6 py-4 text-xs text-slate-400">
+                            {project.folder_name || 'Raiz'}
+                          </td>
+                          <td className="px-6 py-4 text-xs text-slate-400 text-center">
+                            {new Date(project.created_at).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button 
+                              onClick={() => toggleProjectShare(project.id, project.is_shared)}
+                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${project.is_shared ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                            >
+                              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${project.is_shared ? 'translate-x-5' : 'translate-x-1'}`} />
+                            </button>
+                            <span className="text-[10px] uppercase font-bold ml-3 text-slate-400">
+                              {project.is_shared ? 'Sim' : 'Não'}
+                            </span>
+                          </td>
+                        </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
     </div>
