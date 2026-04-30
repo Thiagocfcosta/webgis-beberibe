@@ -57,7 +57,7 @@ export default function SavedMapsDrawer({
         fetchFolders();
       }
       if (activeTab === 'history') fetchExportLogs();
-      if (activeTab === 'shared') fetchSharedMaps();
+      if (activeTab === 'shared' || activeTab === 'community') fetchSharedMaps();
     }
   }, [isOpen, session, activeTab]);
 
@@ -315,9 +315,13 @@ export default function SavedMapsDrawer({
   });
 
   // Excluir projetos do próprio usuário dos mapas compartilhados
-  const teamSharedMaps = sharedMaps.filter(map => !maps.some(myMap => myMap.id === map.id));
+  const otherSharedMaps = sharedMaps.filter(map => !maps.some(myMap => myMap.id === map.id));
 
-  const filteredSharedMaps = teamSharedMaps.filter(map => teamFilterEmail === 'Todos' || map.owner_name === teamFilterEmail);
+  const currentTabSharedMaps = activeTab === 'community' 
+    ? otherSharedMaps.filter(m => m.owner_role === 'Visualizador')
+    : otherSharedMaps.filter(m => m.owner_role !== 'Visualizador');
+
+  const filteredSharedMaps = currentTabSharedMaps.filter(map => teamFilterEmail === 'Todos' || map.owner_name === teamFilterEmail);
 
   const groupedSharedMaps = filteredSharedMaps.reduce((acc, map) => {
     if (map.id === activeMapId) return acc; // Exclui mapa ativo
@@ -327,8 +331,8 @@ export default function SavedMapsDrawer({
     return acc;
   }, {});
 
-  // Extrair usuários únicos da equipe para o filtro
-  const teamUsers = [...new Set(teamSharedMaps.map(m => m.owner_name || m.owner_email))].filter(Boolean).sort();
+  // Extrair usuários únicos da equipe/comunidade para o filtro
+  const teamUsers = [...new Set(currentTabSharedMaps.map(m => m.owner_name || m.owner_email))].filter(Boolean).sort();
 
   // Filtrar logs
   const filteredLogs = exportLogs.filter(log => {
@@ -340,10 +344,29 @@ export default function SavedMapsDrawer({
     return matchesSearch && matchesRole;
   });
 
+  const equipeLogs = filteredLogs.filter(l => l.user_role !== 'Visualizador');
+  const comunidadeLogs = filteredLogs.filter(l => l.user_role === 'Visualizador');
+
   const favoriteMaps = maps.filter(m => m.is_favorite && m.id !== activeMapId);
   const teamFavoriteMaps = teamSharedMaps.filter(m => m.is_favorite && m.id !== activeMapId);
 
   const activeMap = maps.find(m => m.id === activeMapId) || sharedMaps.find(m => m.id === activeMapId);
+
+  const renderLogCard = (log) => (
+    <div key={log.id} className="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-lg transition-colors cursor-pointer group flex flex-col gap-1" onClick={() => handleLoad(log.config_json)}>
+      <h4 className="text-xs font-bold text-slate-300 group-hover:text-white line-clamp-1">
+        {log.map_title} 
+        {log.user_email && <span className="text-[9px] font-normal text-slate-500 ml-2 bg-slate-900 px-1 py-0.5 rounded">by: {log.user_email}</span>}
+      </h4>
+      {log.user_role && <span className="text-[9px] text-slate-500">Cargo: {log.user_role}</span>}
+      <div className="flex justify-between items-center text-[10px] text-slate-500 font-medium mt-1">
+        <span>{new Date(log.exported_at).toLocaleString('pt-BR')}</span>
+        <span className="bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+          Reproduzir
+        </span>
+      </div>
+    </div>
+  );
 
   const renderMapCard = (map, hideBorder = false) => {
     const isActive = activeMapId === map.id && !hideBorder;
@@ -466,18 +489,28 @@ export default function SavedMapsDrawer({
         >
           Meus Projetos
         </button>
+        {session?.user?.role !== 'Visualizador' && (
+          <button 
+            onClick={() => setActiveTab('shared')}
+            className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeTab === 'shared' ? 'text-blue-400 border-b-2 border-blue-400 bg-slate-800' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            Equipe
+          </button>
+        )}
         <button 
-          onClick={() => setActiveTab('shared')}
-          className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeTab === 'shared' ? 'text-blue-400 border-b-2 border-blue-400 bg-slate-800' : 'text-slate-500 hover:text-slate-300'}`}
+          onClick={() => setActiveTab('community')}
+          className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeTab === 'community' ? 'text-blue-400 border-b-2 border-blue-400 bg-slate-800' : 'text-slate-500 hover:text-slate-300'}`}
         >
-          Equipe
+          Comunidade
         </button>
-        <button 
-          onClick={() => setActiveTab('history')}
-          className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeTab === 'history' ? 'text-blue-400 border-b-2 border-blue-400 bg-slate-800' : 'text-slate-500 hover:text-slate-300'}`}
-        >
-          Auditoria
-        </button>
+        {(session?.user?.role === 'admin' || session?.user?.role === 'Administrador') && (
+          <button 
+            onClick={() => setActiveTab('history')}
+            className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeTab === 'history' ? 'text-blue-400 border-b-2 border-blue-400 bg-slate-800' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            Auditoria
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-900/50">
@@ -668,24 +701,26 @@ export default function SavedMapsDrawer({
           </>
         )}
 
-        {/* ABA: COMPARTILHADOS COM A EQUIPE */}
-        {activeTab === 'shared' && (
+        {/* ABA: COMPARTILHADOS (EQUIPE OU COMUNIDADE) */}
+        {(activeTab === 'shared' || activeTab === 'community') && (
           <div className="space-y-4">
             <div className="bg-blue-900/20 border border-blue-500/30 p-3 rounded-lg flex items-center gap-3">
               <Users size={24} className="text-blue-400 flex-shrink-0" />
               <p className="text-xs text-blue-200 leading-relaxed">
-                Estes projetos foram compartilhados por outros analistas da equipe. Clique para carregar o mapa no seu workspace atual.
+                {activeTab === 'shared' 
+                  ? 'Estes projetos foram compartilhados por outros analistas da equipe. Clique para carregar o mapa no seu workspace atual.' 
+                  : 'Estes projetos foram criados e compartilhados pela comunidade. Clique para carregar o mapa no seu workspace.'}
               </p>
             </div>
 
             {teamUsers.length > 0 && (
               <div className="bg-slate-800 p-3 rounded-lg border border-slate-700">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Filtrar por Analista</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Filtrar por Autor</label>
                 <select 
                   value={teamFilterEmail} onChange={e => setTeamFilterEmail(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded px-2 py-1.5 outline-none focus:border-blue-500"
                 >
-                  <option value="Todos">Todos os analistas</option>
+                  <option value="Todos">Todos os autores</option>
                   {teamUsers.map(email => (
                     <option key={email} value={email}>{email}</option>
                   ))}
@@ -697,7 +732,7 @@ export default function SavedMapsDrawer({
               <div className="flex justify-center p-6"><Loader2 className="animate-spin text-slate-500" /></div>
             ) : filteredSharedMaps.length === 0 ? (
               <div className="text-xs text-slate-500 italic bg-slate-800/30 p-4 rounded-lg text-center">
-                {teamFilterEmail === 'Todos' ? 'Nenhum projeto foi compartilhado pela equipe ainda.' : `Nenhum projeto encontrado para ${teamFilterEmail}.`}
+                {teamFilterEmail === 'Todos' ? `Nenhum projeto compartilhado encontrado na ${activeTab === 'shared' ? 'equipe' : 'comunidade'}.` : `Nenhum projeto encontrado para ${teamFilterEmail}.`}
               </div>
             ) : (
               <>
@@ -845,21 +880,24 @@ export default function SavedMapsDrawer({
                 Nenhum log encontrado para estes filtros.
               </div>
             ) : (
-              filteredLogs.map(log => (
-                <div key={log.id} className="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-lg transition-colors cursor-pointer group flex flex-col gap-1" onClick={() => handleLoad(log.config_json)}>
-                  <h4 className="text-xs font-bold text-slate-300 group-hover:text-white line-clamp-1">
-                    {log.map_title} 
-                    {log.user_email && <span className="text-[9px] font-normal text-slate-500 ml-2 bg-slate-900 px-1 py-0.5 rounded">by: {log.user_email}</span>}
-                  </h4>
-                  {log.user_role && <span className="text-[9px] text-slate-500">Cargo: {log.user_role}</span>}
-                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-medium mt-1">
-                    <span>{new Date(log.exported_at).toLocaleString('pt-BR')}</span>
-                    <span className="bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                      Reproduzir
-                    </span>
+              <div className="space-y-6">
+                {equipeLogs.length > 0 && (
+                  <div>
+                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 pb-1 border-b border-slate-700">Logs da Equipe</h3>
+                    <div className="space-y-2">
+                      {equipeLogs.map(log => renderLogCard(log))}
+                    </div>
                   </div>
-                </div>
-              ))
+                )}
+                {comunidadeLogs.length > 0 && (
+                  <div>
+                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 pb-1 border-b border-slate-700">Logs Externos (Visualizadores)</h3>
+                    <div className="space-y-2">
+                      {comunidadeLogs.map(log => renderLogCard(log))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

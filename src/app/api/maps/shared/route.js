@@ -15,16 +15,22 @@ export async function GET(req) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    // Retorna todos os projetos onde is_shared = true, incluindo o email de quem criou
+    // Se for visualizador, ele não pode ver projetos da "Equipe", apenas projetos da "Comunidade" (onde criador é Visualizador)
+    let roleFilter = '';
+    if (session.user.role === 'Visualizador') {
+      roleFilter = "AND u.role = 'Visualizador'";
+    }
+
+    // Retorna todos os projetos onde is_shared = true, incluindo o email e role de quem criou
     const res = await pool.query(`
       SELECT 
         s.id, s.title, s.description, s.config_json, s.created_at, s.folder_name, s.is_shared,
-        u.email as owner_email, u.name as owner_name,
+        u.email as owner_email, u.name as owner_name, u.role as owner_role,
         EXISTS (SELECT 1 FROM map_favorites mf WHERE mf.map_id = s.id AND mf.user_id = $1) as is_favorite,
         (SELECT COUNT(*) FROM map_favorites mf WHERE mf.map_id = s.id)::int as favorites_count
       FROM saved_maps s
       JOIN users u ON s.user_id = u.id
-      WHERE s.is_shared = true
+      WHERE s.is_shared = true ${roleFilter}
       ORDER BY s.created_at DESC
     `, [session.user.id]);
 
