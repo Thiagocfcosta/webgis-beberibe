@@ -1,0 +1,394 @@
+{
+  "beberibe": {
+    "category": "Limites e Zoneamento",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "beberibe_a_ude_planejado": {
+    "category": "Hidrografia",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "beberibe_areas_urbanizadas": {
+    "category": "Infraestrutura e Urbanismo",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "beberibe_bacia_hidrografica": {
+    "category": "Hidrografia",
+    "source": "FUNCEME / SRH",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das feições hidrográficas, espelhos d'água e infraestrutura hídrica do estado."
+  },
+  "beberibe_canais": {
+    "category": "Hidrografia",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "beberibe_compartimenta_ao_geoambiental": {
+    "category": "Meio Ambiente",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "beberibe_corpos_d_agua": {
+    "category": "Hidrografia",
+    "source": "FUNCEME / SRH",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das feições hidrográficas, espelhos d'água e infraestrutura hídrica do estado."
+  },
+  "beberibe_drenagens": {
+    "category": "Hidrografia",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "beberibe_geologia": {
+    "category": "Meio Ambiente",
+    "source": "CPRM / IBGE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das estruturas e formações geológicas, classes de solos e relevo terrestre."
+  },
+  "beberibe_geomorfologia": {
+    "category": "Meio Ambiente",
+    "source": "CPRM / IBGE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das estruturas e formações geológicas, classes de solos e relevo terrestre."
+  },
+  "beberibe_limite_municipal_2025": {
+    "category": "Limites e Zoneamento",
+    "source": "IBGE",
+    "year": "2022",
+    "scale": "Escala Municipal",
+    "description": "Limites político-administrativos oficiais e setores censitários urbanos e rurais."
+  },
+  "beberibe_limite_municipal_2025_s2000_utm_24s": {
+    "category": "Limites e Zoneamento",
+    "source": "IBGE",
+    "year": "2022",
+    "scale": "Escala Municipal",
+    "description": "Limites político-administrativos oficiais e setores censitários urbanos e rurais."
+  },
+  "beberibe_localidades": {
+    "category": "Infraestrutura e Urbanismo",
+    "source": "Prefeitura / IBGE",
+    "year": "2023",
+    "scale": "Alta resolução",
+    "description": "Delimitação das áreas densamente urbanizadas, loteamentos e limites de bairros."
+  },
+  "beberibe_mata_atralntica": {
+    "category": "Meio Ambiente",
+    "source": "FUNCEME / MMA",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Classificação da cobertura vegetal e biomas predominantes (ex: Mata Atlântica)."
+  },
+  "beberibe_regiao_fitoecologica": {
+    "category": "Meio Ambiente",
+    "source": "FUNCEME / MMA",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Classificação da cobertura vegetal e biomas predominantes (ex: Mata Atlântica)."
+  },
+  "beberibe_sede_municipal": {
+    "category": "Infraestrutura e Urbanismo",
+    "source": "Prefeitura / IBGE",
+    "year": "2023",
+    "scale": "Alta resolução",
+    "description": "Delimitação das áreas densamente urbanizadas, loteamentos e limites de bairros."
+  },
+  "beberibe_setor_urbano_rural": {
+    "category": "Limites e Zoneamento",
+    "source": "IBGE",
+    "year": "2022",
+    "scale": "Escala Municipal",
+    "description": "Limites político-administrativos oficiais e setores censitários urbanos e rurais."
+  },
+  "beberibe_solos": {
+    "category": "Meio Ambiente",
+    "source": "CPRM / IBGE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das estruturas e formações geológicas, classes de solos e relevo terrestre."
+  },
+  "beberibe_tipos_climaticos": {
+    "category": "Meio Ambiente",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "beberibe_uc_estadual": {
+    "category": "Meio Ambiente",
+    "source": "ICMBio / SEMA",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Unidades de Conservação de proteção integral e uso sustentável (Parques, APAs, Reservas)."
+  },
+  "beberibe_uc_federal": {
+    "category": "Meio Ambiente",
+    "source": "ICMBio / SEMA",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Unidades de Conservação de proteção integral e uso sustentável (Parques, APAs, Reservas)."
+  },
+  "curva_de_nivel_40m_srtm_ipece_utm_sirgas_2000": {
+    "category": "Meio Ambiente",
+    "source": "IPECE / SRTM (NASA)",
+    "year": "2010",
+    "scale": "40 metros",
+    "description": "Modelo Digital de Elevação e curvas de nível extraídas de radar orbital (SRTM)."
+  },
+  "i3geomap_acudes_monitorados": {
+    "category": "Hidrografia",
+    "source": "FUNCEME / SRH",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das feições hidrográficas, espelhos d'água e infraestrutura hídrica do estado."
+  },
+  "i3geomap_acudes_planejados": {
+    "category": "Hidrografia",
+    "source": "FUNCEME / SRH",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das feições hidrográficas, espelhos d'água e infraestrutura hídrica do estado."
+  },
+  "i3geomap_areas_urbanizadas": {
+    "category": "Infraestrutura e Urbanismo",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "i3geomap_bacias_hidrograficas": {
+    "category": "Hidrografia",
+    "source": "FUNCEME / SRH",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das feições hidrográficas, espelhos d'água e infraestrutura hídrica do estado."
+  },
+  "i3geomap_canais": {
+    "category": "Hidrografia",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "i3geomap_cinturao_das_aguas": {
+    "category": "Hidrografia",
+    "source": "FUNCEME / SRH",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das feições hidrográficas, espelhos d'água e infraestrutura hídrica do estado."
+  },
+  "i3geomap_compartimentacao_geoambiental": {
+    "category": "Meio Ambiente",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "i3geomap_corpos_d_agua": {
+    "category": "Hidrografia",
+    "source": "FUNCEME / SRH",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das feições hidrográficas, espelhos d'água e infraestrutura hídrica do estado."
+  },
+  "i3geomap_drenagens": {
+    "category": "Hidrografia",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "i3geomap_energia_hidreletrica": {
+    "category": "Infraestrutura e Urbanismo",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "i3geomap_geologia": {
+    "category": "Meio Ambiente",
+    "source": "CPRM / IBGE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das estruturas e formações geológicas, classes de solos e relevo terrestre."
+  },
+  "i3geomap_geomorfologia": {
+    "category": "Meio Ambiente",
+    "source": "CPRM / IBGE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das estruturas e formações geológicas, classes de solos e relevo terrestre."
+  },
+  "i3geomap_localidades": {
+    "category": "Infraestrutura e Urbanismo",
+    "source": "Prefeitura / IBGE",
+    "year": "2023",
+    "scale": "Alta resolução",
+    "description": "Delimitação das áreas densamente urbanizadas, loteamentos e limites de bairros."
+  },
+  "i3geomap_mata_atlantica": {
+    "category": "Meio Ambiente",
+    "source": "FUNCEME / MMA",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Classificação da cobertura vegetal e biomas predominantes (ex: Mata Atlântica)."
+  },
+  "i3geomap_regiao_fitoecologica": {
+    "category": "Meio Ambiente",
+    "source": "FUNCEME / MMA",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Classificação da cobertura vegetal e biomas predominantes (ex: Mata Atlântica)."
+  },
+  "i3geomap_sedes_municipais": {
+    "category": "Infraestrutura e Urbanismo",
+    "source": "Prefeitura / IBGE",
+    "year": "2023",
+    "scale": "Alta resolução",
+    "description": "Delimitação das áreas densamente urbanizadas, loteamentos e limites de bairros."
+  },
+  "i3geomap_setor_urbano_rural": {
+    "category": "Limites e Zoneamento",
+    "source": "IBGE",
+    "year": "2022",
+    "scale": "Escala Municipal",
+    "description": "Limites político-administrativos oficiais e setores censitários urbanos e rurais."
+  },
+  "i3geomap_solos": {
+    "category": "Meio Ambiente",
+    "source": "CPRM / IBGE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das estruturas e formações geológicas, classes de solos e relevo terrestre."
+  },
+  "i3geomap_terras_indigenas": {
+    "category": "Sociocultural",
+    "source": "FUNAI",
+    "year": "2022",
+    "scale": "Escala Municipal",
+    "description": "Terras indígenas homologadas ou em processo de delimitação."
+  },
+  "i3geomap_tipos_climaticos": {
+    "category": "Meio Ambiente",
+    "source": "IBGE / IPECE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Base cartográfica municipal com delimitações do PDOT."
+  },
+  "i3geomap_transposicao": {
+    "category": "Hidrografia",
+    "source": "FUNCEME / SRH",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Mapeamento das feições hidrográficas, espelhos d'água e infraestrutura hídrica do estado."
+  },
+  "i3geomap_uc_estadual": {
+    "category": "Meio Ambiente",
+    "source": "ICMBio / SEMA",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Unidades de Conservação de proteção integral e uso sustentável (Parques, APAs, Reservas)."
+  },
+  "i3geomap_uc_federal": {
+    "category": "Meio Ambiente",
+    "source": "ICMBio / SEMA",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Unidades de Conservação de proteção integral e uso sustentável (Parques, APAs, Reservas)."
+  },
+  "i3geomap_vegetacao_natural_predominante": {
+    "category": "Meio Ambiente",
+    "source": "FUNCEME / MMA",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Classificação da cobertura vegetal e biomas predominantes (ex: Mata Atlântica)."
+  },
+  "quilombos_sab_incra": {
+    "category": "Sociocultural",
+    "source": "INCRA / SAB",
+    "year": "2022",
+    "scale": "Escala Municipal",
+    "description": "Áreas de territórios quilombolas oficialmente delimitadas pelo INCRA."
+  },
+  "rodovia_sirgas2000_23s": {
+    "category": "Infraestrutura e Urbanismo",
+    "source": "SOP / DER-CE",
+    "year": "2023",
+    "scale": "Escala Municipal",
+    "description": "Malha rodoviária e vias de acesso pavimentadas e não pavimentadas."
+  },
+  "zeec_ln_diagnostico_planicie_litoranea_1_10_000_utm24s_sirga": {
+    "category": "Limites e Zoneamento",
+    "source": "SEMACE / LABOMAR",
+    "year": "2021",
+    "scale": "1:10.000",
+    "description": "Zoneamento Ecológico-Econômico Costeiro (ZEEC). Instrumental essencial para a gestão do uso e ocupação da planície litorânea."
+  },
+  "zeec_ln_zoneamento_planicie_litoranea_1_25000_utm24s_sirgas2": {
+    "category": "Limites e Zoneamento",
+    "source": "SEMACE / LABOMAR",
+    "year": "2021",
+    "scale": "1:25.000",
+    "description": "Zoneamento Ecológico-Econômico Costeiro (ZEEC). Instrumental essencial para a gestão do uso e ocupação da planície litorânea."
+  },
+  "zeec_pl_diagnostico_planicie_litoranea_1_10_000_utm24s_sirga": {
+    "category": "Limites e Zoneamento",
+    "source": "SEMACE / LABOMAR",
+    "year": "2021",
+    "scale": "1:10.000",
+    "description": "Zoneamento Ecológico-Econômico Costeiro (ZEEC). Instrumental essencial para a gestão do uso e ocupação da planície litorânea."
+  },
+  "zeec_pl_uso_ocupacao_planicie_litoranea_utm24s_sirgas2000": {
+    "category": "Limites e Zoneamento",
+    "source": "SEMACE / LABOMAR",
+    "year": "2021",
+    "scale": "1:25.000",
+    "description": "Zoneamento Ecológico-Econômico Costeiro (ZEEC). Instrumental essencial para a gestão do uso e ocupação da planície litorânea."
+  },
+  "zeec_pl_zoneamento_planicie_litoranea_1_25000_utm24s_sirgas2": {
+    "category": "Limites e Zoneamento",
+    "source": "SEMACE / LABOMAR",
+    "year": "2021",
+    "scale": "1:25.000",
+    "description": "Zoneamento Ecológico-Econômico Costeiro (ZEEC). Instrumental essencial para a gestão do uso e ocupação da planície litorânea."
+  },
+  "extra_ibge_setores_beberibe": {
+    "category": "Dados Extras",
+    "source": "IBGE / Migrado do Postgres",
+    "year": "2022",
+    "scale": "Setor Censitário",
+    "description": "Malha de Setores Censitários de Beberibe extraída da base estadual do IBGE."
+  },
+  "extra_ibge_distritos_beberibe": {
+    "category": "Dados Extras",
+    "source": "IBGE / Migrado do Postgres",
+    "year": "2022",
+    "scale": "Escala Municipal",
+    "description": "Divisão territorial de distritos de Beberibe extraída da base estadual do IBGE."
+  },
+  "extra_ibge_subdistritos_beberibe": {
+    "category": "Dados Extras",
+    "source": "IBGE / Migrado do Postgres",
+    "year": "2022",
+    "scale": "Escala Municipal",
+    "description": "Divisão territorial de subdistritos de Beberibe extraída da base estadual do IBGE."
+  }
+}
