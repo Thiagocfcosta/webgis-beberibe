@@ -29,6 +29,7 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
   const mapRef = globalMapRef || fallbackRef;
   const [loadingLayers, setLoadingLayers] = useState(new Set());
   const [hoverInfo, setHoverInfo] = useState(null);
+  const [activePopupTab, setActivePopupTab] = useState(0);
   const [cursor, setCursor] = useState('grab');
   const [isTableOpen, setIsTableOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(null);
@@ -671,80 +672,98 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
   const onMouseLeave = useCallback(() => setCursor('grab'), []);
   
   const onClick = useCallback((event) => {
-    const feature = event.features && event.features[0];
-    if (feature) {
-      let props = feature.properties;
-      const layerId = feature.layer.id.replace(/^(fill-|line-|point-)/, '');
+    if (event.features && event.features.length > 0) {
+      const featuresByLayer = {};
       
-      let aggregatedProps = null;
-      let classificationClass = null;
-
-      // Calcular agregação em tempo real se a camada estiver classificada
-      const sym = symbologyConfig[layerId];
-      if (sym && sym.property && geoData[layerId]) {
-        const prop = sym.property;
-        const myVal = props[prop];
-        classificationClass = String(myVal !== undefined && myVal !== null ? myVal : 'Outros');
-
-        // Determinar a classe de quebra numérica se for o caso
-        if (sym.classificationType === 'numerical' && sym.breaks) {
-           const numVal = Number(myVal);
-           const brk = sym.breaks.find(b => numVal >= b.lower && numVal <= b.upper);
-           classificationClass = brk ? brk.label : 'Outros';
+      event.features.forEach(f => {
+        const layerId = f.layer.id.replace(/^(fill-|line-|point-)/, '');
+        // Exibe apenas camadas ativas interativas
+        if (activeLayers.includes(layerId) && !featuresByLayer[layerId]) {
+          featuresByLayer[layerId] = f;
         }
-
-        const features = geoData[layerId].features;
-        const numericCols = Object.keys(props).filter(k => {
-          if (k === prop || k === 'id' || k === 'gid') return false;
-          const v = props[k];
-          if (typeof v === 'number') return true;
-          if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) {
-            if (v.length > 5 && !v.includes('.')) return false;
-            return true;
-          }
-          return false;
-        });
-
-        if (numericCols.length > 0) {
-          aggregatedProps = { Contagem: 0 };
-          numericCols.forEach(k => aggregatedProps[k] = 0);
-
-          features.forEach(f => {
-            let fVal = f.properties[prop];
-            fVal = (fVal !== undefined && fVal !== null) ? fVal : 'Outros';
-            
-            let fClass = String(fVal);
-            if (sym.classificationType === 'numerical' && sym.breaks) {
-               const nVal = Number(fVal);
-               const brk = sym.breaks.find(b => nVal >= b.lower && nVal <= b.upper);
-               fClass = brk ? brk.label : 'Outros';
-            }
-
-            if (fClass === classificationClass) {
-              aggregatedProps.Contagem += 1;
-              numericCols.forEach(k => {
-                aggregatedProps[k] += Number(f.properties[k]) || 0;
-              });
-            }
-          });
-
-          // Arredondar
-          numericCols.forEach(k => {
-            if (!Number.isInteger(aggregatedProps[k])) {
-              aggregatedProps[k] = parseFloat(aggregatedProps[k].toFixed(2));
-            }
-          });
-        }
+      });
+      
+      const layerIds = Object.keys(featuresByLayer);
+      if (layerIds.length === 0) {
+        setHoverInfo(null);
+        return;
       }
+
+      const layersData = layerIds.map(layerId => {
+        const feature = featuresByLayer[layerId];
+        let props = feature.properties;
+        let aggregatedProps = null;
+        let classificationClass = null;
+
+        const sym = symbologyConfig[layerId];
+        if (sym && sym.property && geoData[layerId]) {
+          const prop = sym.property;
+          const myVal = props[prop];
+          classificationClass = String(myVal !== undefined && myVal !== null ? myVal : 'Outros');
+
+          if (sym.classificationType === 'numerical' && sym.breaks) {
+             const numVal = Number(myVal);
+             const brk = sym.breaks.find(b => numVal >= b.lower && numVal <= b.upper);
+             classificationClass = brk ? brk.label : 'Outros';
+          }
+
+          const features = geoData[layerId].features;
+          const numericCols = Object.keys(props).filter(k => {
+            if (k === prop || k === 'id' || k === 'gid') return false;
+            const v = props[k];
+            if (typeof v === 'number') return true;
+            if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) {
+              if (v.length > 5 && !v.includes('.')) return false;
+              return true;
+            }
+            return false;
+          });
+
+          if (numericCols.length > 0) {
+            aggregatedProps = { Contagem: 0 };
+            numericCols.forEach(k => aggregatedProps[k] = 0);
+
+            features.forEach(f => {
+              let fVal = f.properties[prop];
+              fVal = (fVal !== undefined && fVal !== null) ? fVal : 'Outros';
+              
+              let fClass = String(fVal);
+              if (sym.classificationType === 'numerical' && sym.breaks) {
+                 const nVal = Number(fVal);
+                 const brk = sym.breaks.find(b => nVal >= b.lower && nVal <= b.upper);
+                 fClass = brk ? brk.label : 'Outros';
+              }
+
+              if (fClass === classificationClass) {
+                aggregatedProps.Contagem += 1;
+                numericCols.forEach(k => {
+                  aggregatedProps[k] += Number(f.properties[k]) || 0;
+                });
+              }
+            });
+
+            numericCols.forEach(k => {
+              if (!Number.isInteger(aggregatedProps[k])) {
+                aggregatedProps[k] = parseFloat(aggregatedProps[k].toFixed(2));
+              }
+            });
+          }
+        }
+
+        return {
+          layerId,
+          properties: props,
+          aggregatedProps,
+          classificationClass
+        };
+      });
 
       setHoverInfo({
         longitude: event.lngLat.lng,
         latitude: event.lngLat.lat,
-        properties: props,
-        layerId: layerId,
-        aggregatedProps,
-        classificationClass
+        layersData
       });
+      setActivePopupTab(0);
     } else {
       setHoverInfo(null);
     }
@@ -863,7 +882,7 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
 
           {renderedLayers}
 
-        {hoverInfo && (
+        {hoverInfo && hoverInfo.layersData && hoverInfo.layersData.length > 0 && (
           <Popup
             longitude={hoverInfo.longitude}
             latitude={hoverInfo.latitude}
@@ -873,37 +892,55 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
             anchor="bottom"
             maxWidth="320px"
           >
-            <div className="text-slate-800 text-xs min-w-[200px]">
-              <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <h3 className="font-bold uppercase text-[10px] tracking-wider text-slate-500">
-                  {hoverInfo.layerId.replace(/_/g, ' ')}
-                </h3>
-              </div>
-              <div className="max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                
-                {hoverInfo.aggregatedProps && (
-                  <div className="mb-4 bg-blue-50 p-2 rounded-md border border-blue-100">
-                    <div className="text-[10px] font-bold text-blue-800 uppercase mb-2 border-b border-blue-200 pb-1">
-                      Agregado: {hoverInfo.classificationClass}
-                    </div>
-                    {Object.entries(hoverInfo.aggregatedProps).map(([key, val]) => (
-                      <div key={`agg-${key}`} className="mb-1 flex justify-between items-center">
-                        <span className="text-[9px] font-bold text-blue-600 uppercase tracking-wider">{key}</span>
-                        <span className="text-[11px] font-bold text-blue-900">{val}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            <div className="text-slate-800 text-xs min-w-[250px] max-w-[320px]">
+              {hoverInfo.layersData.length > 1 && (
+                <div className="flex overflow-x-auto border-b border-slate-200 mb-2 custom-scrollbar">
+                  {hoverInfo.layersData.map((ld, idx) => (
+                    <button
+                      key={ld.layerId}
+                      onClick={() => setActivePopupTab(idx)}
+                      className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${activePopupTab === idx ? 'border-b-2 border-blue-500 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      {ld.layerId.replace(/^(beberibe_|i3geomap_|zeec_|extra_)/i, '').replace(/_/g, ' ')}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-                <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Dados do Polígono</div>
-                {Object.entries(hoverInfo.properties).map(([key, val]) => (
-                  <div key={key} className="mb-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{key}</span>
-                    <div className="text-[11px] font-medium text-slate-700 break-words">{val !== null && val !== undefined ? String(val) : '-'}</div>
-                  </div>
-                ))}
-              </div>
+              {hoverInfo.layersData[activePopupTab] && (
+                <div className="max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                  {hoverInfo.layersData.length === 1 && (
+                    <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
+                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                      <h3 className="font-bold uppercase text-[10px] tracking-wider text-slate-500">
+                        {hoverInfo.layersData[0].layerId.replace(/_/g, ' ')}
+                      </h3>
+                    </div>
+                  )}
+                  
+                  {hoverInfo.layersData[activePopupTab].aggregatedProps && (
+                    <div className="mb-4 bg-blue-50 p-2 rounded-md border border-blue-100">
+                      <div className="text-[10px] font-bold text-blue-800 uppercase mb-2 border-b border-blue-200 pb-1">
+                        Agregado: {hoverInfo.layersData[activePopupTab].classificationClass}
+                      </div>
+                      {Object.entries(hoverInfo.layersData[activePopupTab].aggregatedProps).map(([key, val]) => (
+                        <div key={`agg-${key}`} className="mb-1 flex justify-between items-center">
+                          <span className="text-[9px] font-bold text-blue-600 uppercase tracking-wider">{key}</span>
+                          <span className="text-[11px] font-bold text-blue-900">{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Dados do Objeto</div>
+                  {Object.entries(hoverInfo.layersData[activePopupTab].properties).map(([key, val]) => (
+                    <div key={`prop-${key}`} className="mb-2">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{key}</div>
+                      <div className="text-sm font-medium text-slate-700">{val !== null && val !== undefined ? String(val) : '-'}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </Popup>
         )}
