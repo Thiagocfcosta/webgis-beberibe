@@ -18,12 +18,14 @@ export default function Home() {
   // Título e Descrição do Painel Frontal no Mapa
   const [mapTitle, setMapTitle] = useState('Análise Territorial - Beberibe');
   const [mapDesc, setMapDesc] = useState('Insira uma descrição, data ou nota técnica sobre o mapa aqui...');
+  const [activeMapId, setActiveMapId] = useState(null);
   
   
   const mapRef = useRef(null); // Ref global do mapa para capturar viewport ao salvar
 
   // Carrega os dados de um Workspace (Projeto Salvo)
-  const loadWorkspace = (config) => {
+  const loadWorkspace = (config, mapId = null) => {
+    setActiveMapId(mapId);
     if (config.activeLayers) setActiveLayers(config.activeLayers);
     if (config.basemapStyle) setBasemapStyle(config.basemapStyle);
     if (config.symbologyConfig) setSymbologyConfig(config.symbologyConfig);
@@ -135,6 +137,7 @@ export default function Home() {
         loadWorkspace={loadWorkspace}
         clearMap={clearMap}
         showToast={showToast}
+        activeMapId={activeMapId}
       />
     </main>
   );

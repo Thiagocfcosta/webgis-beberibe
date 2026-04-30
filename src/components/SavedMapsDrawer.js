@@ -9,7 +9,8 @@ export default function SavedMapsDrawer({
   onClose, 
   getWorkspaceConfig, 
   loadWorkspace,
-  showToast
+  showToast,
+  activeMapId
 }) {
   const { data: session } = useSession();
   const [maps, setMaps] = useState([]);
@@ -210,8 +211,8 @@ export default function SavedMapsDrawer({
     }
   };
 
-  const handleLoad = (configJson) => {
-    loadWorkspace(configJson);
+  const handleLoad = (map) => {
+    loadWorkspace(map.config_json, map.id);
     onClose();
   };
 
@@ -316,8 +317,10 @@ export default function SavedMapsDrawer({
   const favoriteMaps = maps.filter(m => m.is_favorite);
   const teamFavoriteMaps = teamSharedMaps.filter(m => m.is_favorite);
 
-  const renderMapCard = (map) => (
-    <div key={map.id} className="relative bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-lg transition-colors cursor-pointer group" onClick={() => handleLoad(map.config_json)}>
+  const renderMapCard = (map) => {
+    const isActive = activeMapId === map.id;
+    return (
+    <div key={map.id} className={`relative hover:bg-slate-700 p-3 rounded-lg transition-colors cursor-pointer group ${isActive ? 'bg-slate-700 border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-800 border border-slate-700'}`} onClick={() => handleLoad(map)}>
       <div className="flex justify-between items-start">
         <h4 className="text-sm font-bold text-blue-400 group-hover:text-blue-300 mb-1 pr-24 flex items-center gap-2">
           {map.title}
@@ -380,7 +383,7 @@ export default function SavedMapsDrawer({
                 <div 
                   key={version.id} 
                   className="flex justify-between items-center bg-slate-900/50 hover:bg-slate-900 p-2 rounded cursor-pointer border border-transparent hover:border-slate-700 transition-colors"
-                  onClick={(e) => { e.stopPropagation(); handleLoad(version.config_json); }}
+                  onClick={(e) => { e.stopPropagation(); handleLoad({ config_json: version.config_json, id: map.id }); }}
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-indigo-400">v{mapVersions.length - index}</span>
@@ -399,7 +402,7 @@ export default function SavedMapsDrawer({
         <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-400">Clique para carregar</span>
       </div>
     </div>
-  );
+  };
 
   if (!isOpen) return null;
 
@@ -625,8 +628,10 @@ export default function SavedMapsDrawer({
                       <span className="text-xs font-bold text-amber-400 tracking-wider">FAVORITOS DA EQUIPE</span>
                     </div>
                     <div className="p-2 space-y-2 bg-slate-900/30">
-                      {filteredSharedMaps.filter(m => m.is_favorite).map(map => (
-                        <div key={map.id} className="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-lg transition-colors cursor-pointer group" onClick={() => handleLoad(map.config_json)}>
+                      {filteredSharedMaps.filter(m => m.is_favorite).map(map => {
+                        const isActive = activeMapId === map.id;
+                        return (
+                        <div key={map.id} className={`hover:bg-slate-700 p-3 rounded-lg transition-colors cursor-pointer group ${isActive ? 'bg-slate-700 border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-800 border border-slate-700'}`} onClick={() => handleLoad(map)}>
                           <div className="flex justify-between items-start">
                             <h4 className="text-sm font-bold text-blue-400 group-hover:text-blue-300 mb-1 flex items-center gap-2">
                               {map.title}
@@ -651,7 +656,8 @@ export default function SavedMapsDrawer({
                             <span>{new Date(map.created_at).toLocaleDateString('pt-BR')}</span>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -673,8 +679,10 @@ export default function SavedMapsDrawer({
                       
                       {isExpanded && (
                         <div className="p-2 space-y-2 bg-slate-900/30">
-                          {groupedSharedMaps[folder].map(map => (
-                            <div key={map.id} className="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-lg transition-colors cursor-pointer group" onClick={() => handleLoad(map.config_json)}>
+                          {groupedSharedMaps[folder].map(map => {
+                          const isActive = activeMapId === map.id;
+                          return (
+                            <div key={map.id} className={`hover:bg-slate-700 p-3 rounded-lg transition-colors cursor-pointer group ${isActive ? 'bg-slate-700 border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-slate-800 border border-slate-700'}`} onClick={() => handleLoad(map)}>
                               <div className="flex justify-between items-start">
                                 <h4 className="text-sm font-bold text-blue-400 group-hover:text-blue-300 mb-1 flex items-center gap-2">
                                   {map.title}
@@ -699,7 +707,8 @@ export default function SavedMapsDrawer({
                                 <span>{new Date(map.created_at).toLocaleDateString('pt-BR')}</span>
                               </div>
                             </div>
-                          ))}
+                          );
+                          })}
                         </div>
                       )}
                     </div>
