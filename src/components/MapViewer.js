@@ -672,7 +672,7 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
   const onMouseLeave = useCallback(() => setCursor('grab'), []);
   
   const onClick = useCallback((event) => {
-    if (event.features && event.features.length > 0) {
+    if (event?.features?.length > 0) {
       const featuresByLayer = {};
       
       event.features.forEach(f => {
@@ -771,9 +771,9 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
 
   // Controlar aba ativa da tabela de atributos
   useEffect(() => {
-    if (activeLayers.length > 0 && (!activeTab || !activeLayers.includes(activeTab))) {
+    if (activeLayers?.length > 0 && (!activeTab || !activeLayers.includes(activeTab))) {
       setActiveTab(activeLayers[0]);
-    } else if (activeLayers.length === 0) {
+    } else if (!activeLayers || activeLayers.length === 0) {
       setIsTableOpen(false);
       setActiveTab(null);
     }
@@ -882,7 +882,7 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
 
           {renderedLayers}
 
-        {hoverInfo && hoverInfo.layersData && hoverInfo.layersData.length > 0 && (
+        {hoverInfo?.layersData?.length > 0 && (
           <Popup
             longitude={hoverInfo.longitude}
             latitude={hoverInfo.latitude}
@@ -893,7 +893,7 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
             maxWidth="320px"
           >
             <div className="text-slate-800 text-xs min-w-[250px] max-w-[320px]">
-              {hoverInfo.layersData.length > 1 && (
+              {hoverInfo?.layersData?.length > 1 && (
                 <div className="flex overflow-x-auto border-b border-slate-200 mb-2 custom-scrollbar">
                   {hoverInfo.layersData.map((ld, idx) => (
                     <button
@@ -907,9 +907,9 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
                 </div>
               )}
 
-              {hoverInfo.layersData[activePopupTab] && (
+              {hoverInfo?.layersData?.[activePopupTab] && (
                 <div className="max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                  {hoverInfo.layersData.length === 1 && (
+                  {hoverInfo?.layersData?.length === 1 && (
                     <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
                       <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                       <h3 className="font-bold uppercase text-[10px] tracking-wider text-slate-500">
@@ -918,7 +918,7 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
                     </div>
                   )}
                   
-                  {hoverInfo.layersData[activePopupTab].aggregatedProps && (
+                  {hoverInfo?.layersData?.[activePopupTab]?.aggregatedProps && (
                     <div className="mb-4 bg-blue-50 p-2 rounded-md border border-blue-100">
                       <div className="text-[10px] font-bold text-blue-800 uppercase mb-2 border-b border-blue-200 pb-1">
                         Agregado: {hoverInfo.layersData[activePopupTab].classificationClass}
@@ -933,7 +933,7 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
                   )}
 
                   <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Dados do Objeto</div>
-                  {Object.entries(hoverInfo.layersData[activePopupTab].properties).map(([key, val]) => (
+                  {hoverInfo?.layersData?.[activePopupTab]?.properties && Object.entries(hoverInfo.layersData[activePopupTab].properties).map(([key, val]) => (
                     <div key={`prop-${key}`} className="mb-2">
                       <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{key}</div>
                       <div className="text-sm font-medium text-slate-700">{val !== null && val !== undefined ? String(val) : '-'}</div>
@@ -979,8 +979,8 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
       )}
 
       {/* Botão flutuante para abrir a tabela */}
-      {activeLayers.length > 0 && !isTableOpen && (
-        <button
+      {activeLayers?.length > 0 && !isTableOpen && (
+        <button 
           onClick={() => setIsTableOpen(true)}
           className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-800/90 hover:bg-slate-700/90 text-white px-6 py-2 rounded-full shadow-xl border border-slate-600 backdrop-blur flex items-center gap-2 transition-all font-medium text-sm z-10"
         >
@@ -1028,7 +1028,7 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
         </div>
         
         <div className="flex-1 overflow-auto bg-slate-900 p-0 custom-scrollbar">
-          {tableData.rows.length > 0 ? (
+          {tableData?.rows?.length > 0 ? (
             <table className="w-full text-left border-collapse text-xs">
               <thead className="bg-slate-800 sticky top-0 z-10 shadow">
                 <tr>
