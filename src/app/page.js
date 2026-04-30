@@ -114,11 +114,6 @@ export default function Home() {
     showToast('Workspace limpo com sucesso.');
   };
 
-  const clearMap = () => {
-    setActiveLayers([]);
-    showToast('Camadas removidas da tela.');
-  };
-
   return (
     <main className="w-screen h-screen overflow-hidden bg-slate-900 relative flex">
       {/* Toast Notification */}
@@ -141,7 +136,7 @@ export default function Home() {
         setSymbologyConfig={setSymbologyConfig}
         clippedLayers={clippedLayers}
         setClippedLayers={setClippedLayers}
-        clearMap={clearMap}
+        clearMap={clearWorkspace}
         showToast={showToast}
       />
 
@@ -171,7 +166,6 @@ export default function Home() {
         getWorkspaceConfig={getWorkspaceConfig}
         loadWorkspace={loadWorkspace}
         mergeWorkspace={mergeWorkspace}
-        clearMap={clearMap}
         clearWorkspace={clearWorkspace}
         showToast={showToast}
         activeMapId={activeMapId}

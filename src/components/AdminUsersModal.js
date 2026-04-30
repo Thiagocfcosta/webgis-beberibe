@@ -41,7 +41,7 @@ export default function AdminUsersModal({ isOpen, onClose }) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/users');
+      const res = await fetch(`/api/users?t=${Date.now()}`);
       if (!res.ok) throw new Error('Não autorizado');
       const data = await res.json();
       setUsers(data);
