@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, FolderOpen, Loader2, X, Plus, Trash2, Users, Globe, Pencil, History } from 'lucide-react';
+import { Save, FolderOpen, Loader2, X, Plus, Trash2, Users, Globe, Pencil, History, Star } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
 export default function SavedMapsDrawer({ 
@@ -110,6 +110,23 @@ export default function SavedMapsDrawer({
       if (res.ok) {
         setMaps(prev => prev.map(m => m.id === id ? { ...m, is_shared: !currentStatus } : m));
         if (showToast) showToast(!currentStatus ? 'Projeto compartilhado com a equipe.' : 'Projeto tornado privado.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleFavorite = async (id, currentStatus, e) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/workspaces/${id}/favorite`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_favorite: !currentStatus })
+      });
+      if (res.ok) {
+        setMaps(prev => prev.map(m => m.id === id ? { ...m, is_favorite: !currentStatus } : m));
+        if (showToast) showToast(!currentStatus ? 'Projeto adicionado aos favoritos.' : 'Projeto removido dos favoritos.');
       }
     } catch (err) {
       console.error(err);
@@ -276,6 +293,88 @@ export default function SavedMapsDrawer({
     return matchesSearch && matchesRole;
   });
 
+  const favoriteMaps = maps.filter(m => m.is_favorite);
+
+  const renderMapCard = (map) => (
+    <div key={map.id} className="relative bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-lg transition-colors cursor-pointer group" onClick={() => handleLoad(map.config_json)}>
+      <div className="flex justify-between items-start">
+        <h4 className="text-sm font-bold text-blue-400 group-hover:text-blue-300 mb-1 pr-24 flex items-center gap-2">
+          {map.title}
+          {map.is_shared && <Globe size={12} className="text-blue-500" title="Compartilhado com a equipe" />}
+        </h4>
+        <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button 
+            onClick={(e) => handleToggleFavorite(map.id, map.is_favorite, e)}
+            className={`p-1 rounded transition-colors ${map.is_favorite ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
+            title={map.is_favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          >
+            <Star size={14} className={map.is_favorite ? "fill-current" : ""} />
+          </button>
+          <button 
+            onClick={(e) => handleToggleShare(map.id, map.is_shared, e)}
+            className={`p-1 rounded transition-colors ${map.is_shared ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
+            title={map.is_shared ? "Remover do compartilhamento" : "Compartilhar com a equipe"}
+          >
+            <Globe size={14} />
+          </button>
+          <button 
+            onClick={(e) => handleToggleHistory(map.id, e)}
+            className={`p-1 rounded transition-colors ${expandedHistoryMapId === map.id ? 'bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-600/40' : 'bg-slate-800 text-slate-500 hover:text-indigo-400'}`}
+            title="Histórico de Versões"
+          >
+            <History size={14} />
+          </button>
+          <button 
+            onClick={(e) => handleEditClick(map, e)}
+            className="p-1 text-slate-500 hover:text-blue-400 bg-slate-800 rounded transition-colors"
+            title="Editar projeto"
+          >
+            <Pencil size={14} />
+          </button>
+          <button 
+            onClick={(e) => handleDeleteMap(map.id, e)}
+            className="p-1 text-slate-500 hover:text-red-400 bg-slate-800 rounded transition-colors"
+            title="Excluir projeto"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+      {map.description && <p className="text-xs text-slate-400 mb-2 line-clamp-2">{map.description}</p>}
+      
+      {/* Versões expandidas */}
+      {expandedHistoryMapId === map.id && (
+        <div className="mt-3 pt-3 border-t border-slate-700">
+          <h5 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Histórico de Versões</h5>
+          <div className="space-y-1.5">
+            {mapVersions.length === 0 ? (
+              <div className="text-[10px] text-slate-500 text-center py-2"><Loader2 size={12} className="animate-spin inline mr-1"/> Carregando...</div>
+            ) : (
+              mapVersions.map((version, index) => (
+                <div 
+                  key={version.id} 
+                  className="flex justify-between items-center bg-slate-900/50 hover:bg-slate-900 p-2 rounded cursor-pointer border border-transparent hover:border-slate-700 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); handleLoad(version.config_json); }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-indigo-400">v{mapVersions.length - index}</span>
+                    <span className="text-[10px] text-slate-300">{new Date(version.created_at).toLocaleString('pt-BR')}</span>
+                  </div>
+                  <span className="text-[9px] bg-indigo-600/20 text-indigo-400 px-1.5 py-0.5 rounded">Carregar</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center text-[10px] text-slate-500 font-medium mt-2">
+        <span>{new Date(map.created_at).toLocaleDateString('pt-BR')}</span>
+        <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-400">Clique para carregar</span>
+      </div>
+    </div>
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -402,102 +501,47 @@ export default function SavedMapsDrawer({
                   Nenhum projeto salvo encontrado.
                 </div>
               ) : (
-                Object.keys(groupedMaps).sort().map(folder => {
-                  const isExpanded = expandedFolders[folder] !== false; // Padrão aberto
-                  return (
-                    <div key={folder} className="bg-slate-800/40 rounded-lg border border-slate-700 overflow-hidden">
-                      <div 
-                        className="bg-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700 transition-colors"
-                        onClick={() => toggleFolder(folder)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <FolderOpen size={14} className="text-blue-400" />
-                          <span className="text-xs font-bold text-slate-300">{folder}</span>
-                        </div>
-                        <span className="text-[10px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded">{groupedMaps[folder].length}</span>
+                <>
+                  {/* Seção de Favoritos */}
+                  {favoriteMaps.length > 0 && (
+                    <div className="bg-slate-800/60 rounded-lg border border-amber-500/30 overflow-hidden mb-4 shadow-[0_0_15px_rgba(245,158,11,0.05)]">
+                      <div className="bg-gradient-to-r from-amber-500/20 to-slate-800 px-3 py-2 flex items-center gap-2 border-b border-amber-500/20">
+                        <Star size={14} className="text-amber-400 fill-current" />
+                        <span className="text-xs font-bold text-amber-400 tracking-wider">FAVORITOS</span>
                       </div>
-                      
-                      {isExpanded && (
-                        <div className="p-2 space-y-2 bg-slate-900/30">
-                          {groupedMaps[folder].map(map => (
-                            <div key={map.id} className="relative bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-lg transition-colors cursor-pointer group" onClick={() => handleLoad(map.config_json)}>
-                              <div className="flex justify-between items-start">
-                                <h4 className="text-sm font-bold text-blue-400 group-hover:text-blue-300 mb-1 pr-14 flex items-center gap-2">
-                                  {map.title}
-                                  {map.is_shared && <Globe size={12} className="text-blue-500" title="Compartilhado com a equipe" />}
-                                </h4>
-                                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button 
-                                    onClick={(e) => handleToggleShare(map.id, map.is_shared, e)}
-                                    className={`p-1 rounded transition-colors ${map.is_shared ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
-                                    title={map.is_shared ? "Remover do compartilhamento" : "Compartilhar com a equipe"}
-                                  >
-                                    <Globe size={14} />
-                                  </button>
-                                  <button 
-                                    onClick={(e) => handleToggleHistory(map.id, e)}
-                                    className={`p-1 rounded transition-colors ${expandedHistoryMapId === map.id ? 'bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-600/40' : 'bg-slate-800 text-slate-500 hover:text-indigo-400'}`}
-                                    title="Histórico de Versões"
-                                  >
-                                    <History size={14} />
-                                  </button>
-                                  <button 
-                                    onClick={(e) => handleEditClick(map, e)}
-                                    className="p-1 text-slate-500 hover:text-blue-400 bg-slate-800 rounded transition-colors"
-                                    title="Editar projeto"
-                                  >
-                                    <Pencil size={14} />
-                                  </button>
-                                  <button 
-                                    onClick={(e) => handleDeleteMap(map.id, e)}
-                                    className="p-1 text-slate-500 hover:text-red-400 bg-slate-800 rounded transition-colors"
-                                    title="Excluir projeto"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              </div>
-                              {map.description && <p className="text-xs text-slate-400 mb-2 line-clamp-2">{map.description}</p>}
-                              
-                              {/* Versões expandidas */}
-                              {expandedHistoryMapId === map.id && (
-                                <div className="mt-3 pt-3 border-t border-slate-700">
-                                  <h5 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Histórico de Versões</h5>
-                                  <div className="space-y-1.5">
-                                    {mapVersions.length === 0 ? (
-                                      <div className="text-[10px] text-slate-500 text-center py-2"><Loader2 size={12} className="animate-spin inline mr-1"/> Carregando...</div>
-                                    ) : (
-                                      mapVersions.map((version, index) => (
-                                        <div 
-                                          key={version.id} 
-                                          className="flex justify-between items-center bg-slate-900/50 hover:bg-slate-900 p-2 rounded cursor-pointer border border-transparent hover:border-slate-700 transition-colors"
-                                          onClick={(e) => { e.stopPropagation(); handleLoad(version.config_json); }}
-                                        >
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-bold text-indigo-400">v{mapVersions.length - index}</span>
-                                            <span className="text-[10px] text-slate-300">{new Date(version.created_at).toLocaleString('pt-BR')}</span>
-                                          </div>
-                                          <span className="text-[9px] bg-indigo-600/20 text-indigo-400 px-1.5 py-0.5 rounded">Carregar</span>
-                                        </div>
-                                      ))
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="flex justify-between items-center text-[10px] text-slate-500 font-medium mt-2">
-                                <span>{new Date(map.created_at).toLocaleDateString('pt-BR')}</span>
-                                <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-400">Clique para carregar</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <div className="p-2 space-y-2 bg-slate-900/30">
+                        {favoriteMaps.map(map => renderMapCard(map))}
+                      </div>
                     </div>
-                  )
-                })
+                  )}
+
+                  {/* Pastas Normais */}
+                  {Object.keys(groupedMaps).sort().map(folder => {
+                    const isExpanded = expandedFolders[folder] !== false; // Padrão aberto
+                    return (
+                      <div key={folder} className="bg-slate-800/40 rounded-lg border border-slate-700 overflow-hidden mb-2">
+                        <div 
+                          className="bg-slate-800 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-700 transition-colors"
+                          onClick={() => toggleFolder(folder)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <FolderOpen size={14} className="text-blue-400" />
+                            <span className="text-xs font-bold text-slate-300">{folder}</span>
+                          </div>
+                          <span className="text-[10px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded">{groupedMaps[folder].length}</span>
+                        </div>
+                        
+                        {isExpanded && (
+                          <div className="p-2 space-y-2 bg-slate-900/30">
+                            {groupedMaps[folder].map(map => renderMapCard(map))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
               )}
-            </div>
+            </div>       </div>
           </>
         )}
 
