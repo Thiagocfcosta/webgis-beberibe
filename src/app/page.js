@@ -15,6 +15,10 @@ export default function Home() {
   const [clippedLayers, setClippedLayers] = useState({}); // { layerId: true } se deve recortar
   const [toastMessage, setToastMessage] = useState(null); // Sistema global de notificações
   
+  // Título e Descrição do Painel Frontal no Mapa
+  const [mapTitle, setMapTitle] = useState('Análise Territorial - Beberibe');
+  const [mapDesc, setMapDesc] = useState('Insira uma descrição, data ou nota técnica sobre o mapa aqui...');
+  
   
   const mapRef = useRef(null); // Ref global do mapa para capturar viewport ao salvar
 
@@ -24,6 +28,8 @@ export default function Home() {
     if (config.basemapStyle) setBasemapStyle(config.basemapStyle);
     if (config.symbologyConfig) setSymbologyConfig(config.symbologyConfig);
     if (config.clippedLayers) setClippedLayers(config.clippedLayers);
+    if (config.mapTitle) setMapTitle(config.mapTitle);
+    if (config.mapDesc) setMapDesc(config.mapDesc);
     
     showToast('Projeto carregado com sucesso!');
     
@@ -59,6 +65,8 @@ export default function Home() {
       basemapStyle,
       symbologyConfig,
       clippedLayers,
+      mapTitle,
+      mapDesc,
       viewState
     };
   };
@@ -111,6 +119,10 @@ export default function Home() {
           symbologyConfig={symbologyConfig}
           clippedLayers={clippedLayers}
           getWorkspaceConfig={getWorkspaceConfig}
+          mapTitle={mapTitle}
+          setMapTitle={setMapTitle}
+          mapDesc={mapDesc}
+          setMapDesc={setMapDesc}
         />
       </div>
 

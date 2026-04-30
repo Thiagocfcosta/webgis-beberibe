@@ -227,8 +227,9 @@ export default function SavedMapsDrawer({
   const handleCreateNew = () => {
     setIsCreating(true);
     setEditingMapId(null);
-    setTitle('');
-    setDesc('');
+    const config = getWorkspaceConfig ? getWorkspaceConfig() : {};
+    setTitle(config.mapTitle || '');
+    setDesc(config.mapDesc || '');
     setFolderName('');
   };
 

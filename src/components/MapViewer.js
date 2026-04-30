@@ -23,7 +23,7 @@ const stringToColor = (str) => {
   return '#' + '00000'.substring(0, 6 - c.length) + c;
 };
 
-export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, geoData, setGeoData, symbologyConfig, clippedLayers, getWorkspaceConfig }) {
+export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, geoData, setGeoData, symbologyConfig, clippedLayers, getWorkspaceConfig, mapTitle, setMapTitle, mapDesc, setMapDesc }) {
   // Se recebemos um ref de fora, usamos ele. Senão criamos um fallback.
   const fallbackRef = useRef(null);
   const mapRef = globalMapRef || fallbackRef;
@@ -35,8 +35,6 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
   const [isTableAggregated, setIsTableAggregated] = useState(false);
 
   // Estados para exportação
-  const [mapTitle, setMapTitle] = useState('Análise Territorial - Beberibe');
-  const [mapDesc, setMapDesc] = useState('Insira uma descrição, data ou nota técnica sobre o mapa aqui...');
   const [isExporting, setIsExporting] = useState(false);
 
   const [printSnapshot, setPrintSnapshot] = useState(null);
