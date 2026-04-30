@@ -9,6 +9,7 @@ export default function SavedMapsDrawer({
   onClose, 
   getWorkspaceConfig, 
   loadWorkspace,
+  mergeWorkspace,
   showToast,
   activeMapId
 }) {
@@ -222,6 +223,15 @@ export default function SavedMapsDrawer({
     onClose();
   };
 
+  const handleMerge = (map, e) => {
+    e.stopPropagation();
+    if (!activeMapId) return;
+    if (!confirm('Deseja mesclar este projeto com o projeto atualmente aberto?')) return;
+    
+    mergeWorkspace(map.config_json);
+    onClose();
+  };
+
   const handleEditClick = (map, e) => {
     e.stopPropagation();
     setIsCreating(true);
@@ -416,7 +426,18 @@ export default function SavedMapsDrawer({
 
       <div className="flex justify-between items-center text-[10px] text-slate-500 font-medium mt-2">
         <span>{new Date(map.created_at).toLocaleDateString('pt-BR')}</span>
-        <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-400">Clique para carregar</span>
+        <div className="flex gap-2">
+          {activeMapId && activeMapId !== map.id && !hideBorder && (
+            <button 
+              onClick={(e) => handleMerge(map, e)}
+              className="bg-indigo-900/50 hover:bg-indigo-600 px-2 py-0.5 rounded text-indigo-300 hover:text-white transition-colors border border-indigo-700/50"
+              title="Juntar com o projeto aberto atualmente"
+            >
+              + Mesclar
+            </button>
+          )}
+          <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-400">Clique para carregar</span>
+        </div>
       </div>
     </div>
     );

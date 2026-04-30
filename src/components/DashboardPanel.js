@@ -8,7 +8,7 @@ import SavedMapsDrawer from './SavedMapsDrawer';
 import AdminUsersModal from './AdminUsersModal';
 import { Shield } from 'lucide-react';
 
-export default function DashboardPanel({ activeLayers, geoData, symbologyConfig, getWorkspaceConfig, loadWorkspace, clearMap, showToast, activeMapId }) {
+export default function DashboardPanel({ activeLayers, geoData, symbologyConfig, getWorkspaceConfig, loadWorkspace, mergeWorkspace, clearMap, showToast, activeMapId }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
@@ -381,6 +381,7 @@ export default function DashboardPanel({ activeLayers, geoData, symbologyConfig,
         onClose={() => setIsWorkspaceOpen(false)}
         getWorkspaceConfig={getWorkspaceConfig}
         loadWorkspace={loadWorkspace}
+        mergeWorkspace={mergeWorkspace}
         showToast={showToast}
         activeMapId={activeMapId}
       />

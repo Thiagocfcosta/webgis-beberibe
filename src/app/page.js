@@ -48,6 +48,32 @@ export default function Home() {
     }
   };
 
+  // Mescla os dados de um Workspace com o atual
+  const mergeWorkspace = (config) => {
+    setActiveMapId(null); // Vira um projeto novo/mesclado, não deve sobrescrever o antigo ao salvar
+
+    if (config.activeLayers) {
+      setActiveLayers(prev => ({ ...prev, ...config.activeLayers }));
+    }
+    if (config.symbologyConfig) {
+      setSymbologyConfig(prev => ({ ...prev, ...config.symbologyConfig }));
+    }
+    if (config.clippedLayers) {
+      setClippedLayers(prev => ({ ...prev, ...config.clippedLayers }));
+    }
+    if (config.mapTitle) {
+      setMapTitle(prev => prev === 'Análise Territorial - Beberibe' ? config.mapTitle : `${prev} + ${config.mapTitle}`);
+    }
+    if (config.mapDesc) {
+      setMapDesc(prev => prev.startsWith('Insira uma descrição') ? config.mapDesc : `${prev}\n\n---\nAdicionado do projeto mesclado:\n${config.mapDesc}`);
+    }
+    
+    showToast('Projetos mesclados com sucesso! Não esqueça de salvar o novo projeto.');
+    
+    // Opcional: voar para a câmera do novo mapa (descomentar se preferir)
+    // Se não, mantemos a câmera do mapa que já estava aberto.
+  };
+
   // Prepara o JSON exato do estado atual
   const getWorkspaceConfig = () => {
     let viewState = {};
@@ -135,6 +161,7 @@ export default function Home() {
         symbologyConfig={symbologyConfig}
         getWorkspaceConfig={getWorkspaceConfig}
         loadWorkspace={loadWorkspace}
+        mergeWorkspace={mergeWorkspace}
         clearMap={clearMap}
         showToast={showToast}
         activeMapId={activeMapId}
