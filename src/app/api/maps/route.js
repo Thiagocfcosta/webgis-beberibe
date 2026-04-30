@@ -15,10 +15,15 @@ export async function GET(req) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const res = await pool.query(
-      'SELECT id, title, description, config_json, created_at, folder_name, is_shared FROM saved_maps WHERE user_id = $1 ORDER BY created_at DESC',
-      [session.user.id]
-    );
+    const res = await pool.query(`
+      SELECT 
+        s.id, s.title, s.description, s.config_json, s.created_at, s.folder_name, s.is_shared,
+        EXISTS (SELECT 1 FROM map_favorites mf WHERE mf.map_id = s.id AND mf.user_id = $1) as is_favorite,
+        (SELECT COUNT(*) FROM map_favorites mf WHERE mf.map_id = s.id)::int as favorites_count
+      FROM saved_maps s 
+      WHERE s.user_id = $1 
+      ORDER BY s.created_at DESC
+    `, [session.user.id]);
 
     return NextResponse.json(res.rows);
   } catch (error) {
