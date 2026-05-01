@@ -78,17 +78,18 @@ export default function PrintLayout({
           boxSizing: 'border-box'
         }}
       >
-        {/* Bloco 1: Logos Principais */}
-        <div style={{ padding: '40px', borderBottom: '6px solid #000', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '220px' }}>
-          <img src="/logo_pdot.jpeg" alt="Plano Diretor de Beberibe" style={{ width: '100%', maxHeight: '260px', objectFit: 'contain' }} />
-        </div>
+        {/* Bloco 1: Identificação Principal (Logo + Título) */}
+        <div style={{ padding: '50px 40px', borderBottom: '4px solid #000', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          
+          {/* Logo expandida e "recortada" para preencher melhor o espaço */}
+          <div style={{ width: '100%', height: '260px', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '20px' }}>
+            <img src="/logo_pdot.jpeg" alt="Plano Diretor de Beberibe" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.5)' }} />
+          </div>
 
-        {/* Bloco 2: Identificação do Projeto */}
-        <div style={{ padding: '40px', borderBottom: '4px solid #000', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '32px', fontWeight: '800', margin: '0 0 15px 0', letterSpacing: '2px' }}>
-            PLANO DIRETOR DE DESENVOLVIMENTO URBANO E TERRITORIAL
+          <h2 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 15px 0', letterSpacing: '1px', lineHeight: '1.3', color: '#111' }}>
+            PLANO DIRETOR DE<br/>DESENVOLVIMENTO URBANO E<br/>TERRITORIAL
           </h2>
-          <h3 style={{ fontSize: '24px', fontWeight: '500', color: '#444', margin: 0, textTransform: 'uppercase' }}>
+          <h3 style={{ fontSize: '24px', fontWeight: '500', color: '#555', margin: 0, textTransform: 'uppercase' }}>
             {mapTitle || 'Análise Territorial'}
           </h3>
           {mapDesc && (
