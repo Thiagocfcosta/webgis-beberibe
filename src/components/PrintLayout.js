@@ -227,7 +227,7 @@ export default function PrintLayout({
             }
 
             return (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px' }}>
                 <div style={{ display: 'flex', gap: '20px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                     <Navigation 
@@ -240,8 +240,7 @@ export default function PrintLayout({
                   </div>
                 </div>
                 
-                <div style={{ flex: 1, marginLeft: '40px' }}>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>ESCALA GRÁFICA</div>
+                <div>
                   {/* Barra de escala visual calculada */}
                   <div style={{ display: 'flex', width: `${scaleWidthPx}px`, height: '15px', border: '2px solid #000' }}>
                     <div style={{ flex: 1, backgroundColor: '#000' }} />
