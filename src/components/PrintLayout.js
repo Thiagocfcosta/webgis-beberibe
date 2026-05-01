@@ -10,6 +10,7 @@ export default function PrintLayout({
   activeLayers, 
   symbologyConfig, 
   printMetadata,
+  userName,
   onReady 
 }) {
   const [layersDef, setLayersDef] = useState([]);
@@ -277,6 +278,12 @@ export default function PrintLayout({
               <span style={{ color: '#666', display: 'block', fontSize: '14px' }}>FONTE</span>
               Prefeitura, IBGE, OSM
             </div>
+            {userName && (
+              <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
+                <span style={{ color: '#666', display: 'block', fontSize: '14px' }}>ELABORADO POR</span>
+                {userName}
+              </div>
+            )}
           </div>
           
         </div>

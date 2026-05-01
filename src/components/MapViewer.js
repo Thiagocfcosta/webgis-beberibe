@@ -1072,6 +1072,7 @@ export default function MapViewer({ globalMapRef, activeLayers, basemapStyle, ge
             activeLayers={activeLayers}
             symbologyConfig={symbologyConfig}
             printMetadata={printMetadata}
+            userName={session?.user?.name || 'Sistema WebGIS'}
             onReady={handlePrintReady}
           />
         )}
