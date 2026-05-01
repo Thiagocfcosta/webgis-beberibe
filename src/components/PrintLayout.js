@@ -101,7 +101,7 @@ export default function PrintLayout({
 
         {/* Bloco 3: Convenções Cartográficas (Legenda Dinâmica) */}
         <div style={{ padding: '40px', flex: 1, borderBottom: '4px solid #000', display: 'flex', flexDirection: 'column' }}>
-          <h4 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 30px 0', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
+          <h4 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 30px 0', borderBottom: '2px solid #000', paddingBottom: '10px', textAlign: 'center' }}>
             CONVENÇÕES CARTOGRÁFICAS
           </h4>
           
