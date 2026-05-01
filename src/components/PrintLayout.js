@@ -15,6 +15,44 @@ export default function PrintLayout({
 }) {
   const [layersDef, setLayersDef] = useState([]);
 
+  // --- Cálculos Matemáticos da Escala Gráfica ---
+  let mapScaleFactor = 1;
+  let scaleWidthPx = 400; // Tamanho físico cravado (ex: ~2cm no papel)
+  let scaleLabels = [0, 2.5, 5, 7.5, 10]; // fallback labels
+  
+  if (printMetadata && printMetadata.widthKm) {
+    const mapWidthPx = 2970 * 0.78; // 2316.6px no PDF (78% da largura A4)
+    const kmPerPx = printMetadata.widthKm / mapWidthPx;
+    
+    // Qual seria o km total se a barra tivesse exatamente 400px de tamanho físico?
+    const baseTotalKm = kmPerPx * 400;
+    const baseStepKm = baseTotalKm / 4;
+    
+    // Escalas "limpas" (inteiras ou frações amigáveis) para os 4 passos da régua
+    const niceSteps = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 3, 4, 5, 10, 20, 25, 30, 40, 50, 100, 200, 250, 500, 1000];
+    
+    // Encontra o maior passo limpo que caiba no nosso passo base
+    let niceStep = niceSteps[0];
+    for (const step of niceSteps) {
+      if (step <= baseStepKm) {
+        niceStep = step;
+      } else {
+        break;
+      }
+    }
+    
+    const niceTotalKm = niceStep * 4;
+    
+    // O usuário quer MANTER a escala física (400px) e REDIMENSIONAR o mapa para bater com a escala limpa.
+    // Fator de Zoom = km Base / km Limpo
+    // Se km Limpo for menor (ex: 16km vs 19km), daremos zoom in (scale > 1) na imagem do mapa.
+    mapScaleFactor = baseTotalKm / niceTotalKm;
+    
+    // Formata corretamente os valores para evitar bizarrices de ponto flutuante (ex: 0.300000004)
+    scaleLabels = [0, niceStep, niceStep * 2, niceStep * 3, niceTotalKm].map(v => Number(parseFloat(v).toFixed(2)));
+  }
+  // ----------------------------------------------
+
   useEffect(() => {
     // Busca a definição das camadas para montar a legenda
     fetch('/api/layers')
@@ -50,7 +88,8 @@ export default function PrintLayout({
           height: '100%', 
           position: 'relative',
           borderRight: '8px solid #000', // Borda preta grossa separando o mapa do carimbo
-          backgroundColor: '#0f172a'
+          backgroundColor: '#0f172a',
+          overflow: 'hidden' // Evita que o zoom do mapa vaze pelas bordas
         }}
       >
         {mapImage && (
@@ -60,7 +99,8 @@ export default function PrintLayout({
             style={{ 
               width: '100%', 
               height: '100%', 
-              objectFit: 'cover' 
+              objectFit: 'cover',
+              transform: `scale(${mapScaleFactor})`
             }} 
           />
         )}
@@ -209,41 +249,8 @@ export default function PrintLayout({
         {/* Bloco 4: Informações Técnicas e Escala */}
         <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
           
-          {(() => {
-            // Cálculos da Escala Gráfica
-            let scaleWidthPx = 400; // Tamanho visual base aproximado
-            let scaleLabels = [0, 2.5, 5, 7.5, 10]; // fallback labels
-            
-            if (printMetadata && printMetadata.widthKm) {
-              const mapWidthPx = 2970 * 0.78; // 2316.6px no PDF
-              const kmPerPx = printMetadata.widthKm / mapWidthPx;
-              
-              // Qual seria o km total se a barra tivesse exatamente 400px?
-              const baseTotalKm = kmPerPx * 400;
-              const baseStepKm = baseTotalKm / 4;
-              
-              // Escalas "limpas" (inteiras ou frações amigáveis) para os passos
-              const niceSteps = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
-              
-              // Encontra o maior passo limpo que caiba no nosso passo base
-              let niceStep = niceSteps[0];
-              for (const step of niceSteps) {
-                if (step <= baseStepKm) {
-                  niceStep = step;
-                } else {
-                  break;
-                }
-              }
-              
-              // Recalcula o total km real e ajusta o tamanho físico da barra em pixels
-              const niceTotalKm = niceStep * 4;
-              scaleWidthPx = niceTotalKm / kmPerPx;
-              
-              scaleLabels = [0, niceStep, niceStep * 2, niceStep * 3, niceTotalKm];
-            }
-
-            return (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px' }}>
+          {/* Aqui usaremos os cálculos de escala já computados no topo do arquivo */}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px' }}>
                 <div style={{ display: 'flex', gap: '20px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                     <Navigation 
@@ -272,9 +279,8 @@ export default function PrintLayout({
                     <span>{scaleLabels[4]} km</span>
                   </div>
                 </div>
-              </div>
-            );
-          })()}
+            </div>
+          </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px', fontSize: '18px', fontWeight: '600' }}>
             <div>
