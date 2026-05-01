@@ -211,20 +211,35 @@ export default function PrintLayout({
           
           {(() => {
             // Cálculos da Escala Gráfica
-            let scaleWidthPx = 400; // Tamanho visual fixo padronizado
+            let scaleWidthPx = 400; // Tamanho visual base aproximado
             let scaleLabels = [0, 2.5, 5, 7.5, 10]; // fallback labels
             
             if (printMetadata && printMetadata.widthKm) {
               const mapWidthPx = 2970 * 0.78; // 2316.6px no PDF
               const kmPerPx = printMetadata.widthKm / mapWidthPx;
               
-              // O tamanho físico da escala nunca muda (400px), mas os km representados sim
-              const totalKm = kmPerPx * scaleWidthPx;
+              // Qual seria o km total se a barra tivesse exatamente 400px?
+              const baseTotalKm = kmPerPx * 400;
+              const baseStepKm = baseTotalKm / 4;
               
-              scaleLabels = [0, totalKm/4, totalKm/2, (totalKm*3)/4, totalKm];
+              // Escalas "limpas" (inteiras ou frações amigáveis) para os passos
+              const niceSteps = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
               
-              // Formatar labels para no máximo 2 casas decimais, para precisão sem poluição
-              scaleLabels = scaleLabels.map(v => Number.isInteger(v) ? v : Number(v.toFixed(2)));
+              // Encontra o maior passo limpo que caiba no nosso passo base
+              let niceStep = niceSteps[0];
+              for (const step of niceSteps) {
+                if (step <= baseStepKm) {
+                  niceStep = step;
+                } else {
+                  break;
+                }
+              }
+              
+              // Recalcula o total km real e ajusta o tamanho físico da barra em pixels
+              const niceTotalKm = niceStep * 4;
+              scaleWidthPx = niceTotalKm / kmPerPx;
+              
+              scaleLabels = [0, niceStep, niceStep * 2, niceStep * 3, niceTotalKm];
             }
 
             return (
