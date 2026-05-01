@@ -83,7 +83,7 @@ export default function PrintLayout({
           
           {/* Logo expandida e "recortada" para preencher melhor o espaço */}
           <div style={{ width: '100%', height: '260px', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '20px' }}>
-            <img src="/logo_pdot.jpeg" alt="Plano Diretor de Beberibe" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.5)' }} />
+            <img src="/logo_pdot.jpeg" alt="Plano Diretor de Beberibe" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.5)', mixBlendMode: 'multiply' }} />
           </div>
 
           <h2 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 15px 0', letterSpacing: '1px', lineHeight: '1.3', color: '#111' }}>
