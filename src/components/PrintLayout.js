@@ -78,24 +78,9 @@ export default function PrintLayout({
           boxSizing: 'border-box'
         }}
       >
-        {/* Bloco 1: Logos */}
-        <div style={{ padding: '60px 40px', borderBottom: '6px solid #000', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '30px' }}>
-          <img src="/logo.jpg" alt="Espaço e Plano" style={{ maxHeight: '180px', objectFit: 'contain' }} />
-          
-          {/* Espaço para logo da prefeitura */}
-          <div style={{ 
-            width: '100%', 
-            height: '120px', 
-            border: '2px dashed #999', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            color: '#666',
-            fontSize: '24px',
-            fontWeight: 'bold'
-          }}>
-            MUNICÍPIO DE BEBERIBE
-          </div>
+        {/* Bloco 1: Logos Principais */}
+        <div style={{ padding: '40px', borderBottom: '6px solid #000', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '220px' }}>
+          <img src="/logo_pdot.jpeg" alt="Plano Diretor de Beberibe" style={{ width: '100%', maxHeight: '260px', objectFit: 'contain' }} />
         </div>
 
         {/* Bloco 2: Identificação do Projeto */}
@@ -294,6 +279,24 @@ export default function PrintLayout({
             </div>
           </div>
           
+        </div>
+
+        {/* Bloco 5: Carimbo das Empresas Envolvidas */}
+        <div style={{ padding: '30px 40px', borderTop: '4px solid #000', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '30px', flexWrap: 'wrap' }}>
+            
+            {/* Logo Espaço e Plano com tipografia */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <img src="/logo.jpg" alt="Logo Símbolo Espaço e Plano" style={{ height: '65px', objectFit: 'contain' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: '5px' }}>
+                <span style={{ fontFamily: 'Georgia, serif', fontSize: '28px', fontWeight: '900', color: '#3A1405', letterSpacing: '1px', lineHeight: '1' }}>
+                  ESPAÇO E PLANO
+                </span>
+              </div>
+            </div>
+
+            {/* Adicione futuras logos aqui */}
+          </div>
         </div>
       </div>
     </div>
